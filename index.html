@@ -335,9 +335,9 @@ let layoutOverride = null;
 
 // ─── physics tunables (overridden by editor) ──────────────────────────────────
 let PHY = {
-  chipSize: 0.21,   // CHIP_R = SLOT_W_VIS * chipSize
-  pegH:     1.5,    // extra random horizontal kick after peg bounce
-  pegV:     0.85,   // restitution coefficient (0=dead, 1=perfect elastic)
+  chipSize: 0.18,   // CHIP_R = SLOT_W_VIS * chipSize
+  pegH:     2.4,    // extra random horizontal kick after peg bounce
+  pegV:     0.50,   // restitution coefficient (0=dead, 1=perfect elastic)
   toothH:   2.0,    // tooth bounce horizontal  (actual vx = toothH + random*3)
   toothV:   0.5,    // tooth bounce vertical    (actual vy = |vy|*toothV + toothV + random*1.5)
 };
