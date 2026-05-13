@@ -337,7 +337,7 @@ let layoutOverride = null;
 let PHY = {
   chipSize: 0.21,   // CHIP_R = SLOT_W_VIS * chipSize
   pegH:     1.5,    // extra random horizontal kick after peg bounce
-  pegV:     0.65,   // restitution coefficient (0=dead, 1=perfect elastic)
+  pegV:     0.85,   // restitution coefficient (0=dead, 1=perfect elastic)
   toothH:   2.0,    // tooth bounce horizontal  (actual vx = toothH + random*3)
   toothV:   0.5,    // tooth bounce vertical    (actual vy = |vy|*toothV + toothV + random*1.5)
 };
@@ -588,7 +588,7 @@ function update() {
           chip.vy -= (1 + PHY.pegV) * vDotN * ny;
           // tiny random nudge for plinko unpredictability (does NOT add energy)
           const dir = dx > chip.r*0.1 ? 1 : dx < -chip.r*0.1 ? -1 : (Math.random()<0.5?1:-1);
-          chip.vx += dir * PHY.pegH * Math.random() * 0.25;
+          chip.vx += dir * PHY.pegH * Math.random();
         }
         break;
       }
@@ -718,7 +718,7 @@ function drawBackground() {
 }
 
 function drawPegs() {
-  const s  = PEG_R * 2.4;
+  const s  = PEG_R * 2.0;
   const sh = s * PEG_ASPECT;
   if (imgPeg.complete && imgPeg.naturalWidth > 0) {
     for (let peg of pegs) {
@@ -845,7 +845,7 @@ function drawChips() {
     }
 
     if (imgBall.complete && imgBall.naturalWidth > 0) {
-      const s = chip.r * 1.0;
+      const s = chip.r * 2.0;
       ctx.save();
       ctx.shadowColor = 'rgba(200,160,60,0.5)';
       ctx.shadowBlur  = chip.r;
