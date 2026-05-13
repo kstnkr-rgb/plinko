@@ -159,46 +159,6 @@
     transition: opacity 0.1s;
   }
 
-  /* ── RESULTS ── */
-  #results-col {
-    width: 54px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding-top: 8px;
-    border-left: 1px solid rgba(200,140,60,0.15);
-    background: rgba(0,0,0,0.3);
-    overflow: hidden;
-    flex-shrink: 0;
-  }
-  #results-col .col-label {
-    font-family: 'Fredoka One', cursive;
-    font-size: 8px;
-    color: rgba(240,200,100,0.4);
-    text-transform: uppercase;
-    margin-bottom: 6px;
-    letter-spacing: 0.5px;
-  }
-  #results-list {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    overflow: hidden;
-    flex: 1;
-    width: 100%;
-  }
-  .result-item {
-    font-family: 'Fredoka One', cursive;
-    font-size: 9px;
-    text-align: center;
-    line-height: 1.2;
-    padding: 2px 3px;
-    width: 50px;
-    word-break: break-word;
-    animation: slideIn 0.25s ease-out;
-  }
-  @keyframes slideIn { from{opacity:0;transform:translateX(10px)} to{opacity:1;transform:translateX(0)} }
 
   /* ── BOTTOM BAR ── */
   #bottom-bar {
@@ -256,6 +216,19 @@
   #prize-name   { font-family:'Fredoka One',cursive; font-size:32px; color:var(--prize-color,#E8732A); text-shadow:0 0 20px var(--prize-color,#E8732A); }
   #prize-tap    { font-family:'Nunito',sans-serif; font-size:11px; font-weight:600; color:rgba(245,220,160,0.35); letter-spacing:1px; animation:blink 1.8s ease-in-out infinite; }
 
+  /* ── АДАПТИВНОСТЬ ── */
+  @media (max-width: 390px) {
+    #header     { padding: 4px 10px 3px; }
+    #title      { font-size: 16px; }
+    #btn-remove { font-size: 11px; padding: 4px 8px; }
+    #btn-bg     { font-size: 14px; padding: 4px 7px; }
+    #bottom-bar { padding: 4px 12px 6px; }
+    #btn-drop   { font-size: 15px; padding: 8px 22px; }
+    #prize-card { padding: 20px 32px 18px; }
+    #prize-name { font-size: 26px; }
+    #prize-emoji{ font-size: 34px; }
+  }
+
   /* ── VERSION ── */
   #version-tag {
     position: absolute;
@@ -283,10 +256,6 @@
       <div id="hint-remove">НАЖМИТЕ НА СТАКАН</div>
       <div id="win-flash"></div>
       <div id="version-tag">v1.0</div>
-    </div>
-    <div id="results-col">
-      <div class="col-label">призы</div>
-      <div id="results-list"></div>
     </div>
   </div>
   <div id="bottom-bar">
@@ -335,8 +304,14 @@ const PEG_ASPECT = 219 / 189;   // ≈ 1.159
 // side.png: 180/890 ≈ 0.202 (narrow vertical strip)
 const SIDE_ASPECT = 180 / 890;
 
-// Pegs are placed via editor (8×11 grid). Empty = no default pegs.
-const CUSTOM_PEGS = [];
+// Полная сетка 9×11 — закреплена, не зависит от localStorage/редактора
+const CUSTOM_PEGS = (() => {
+  const cols=9, rows=11, bxf=0.05, bwf=0.90, yStart=0.08, yEnd=0.76, pegs=[];
+  for (let r=0; r<rows; r++)
+    for (let c=0; c<cols; c++)
+      pegs.push({ xf: bxf+(c+0.5)*bwf/cols, yf: yStart+r*(yEnd-yStart)/(rows-1) });
+  return pegs;
+})();
 
 // ─── live editor override (set via BroadcastChannel / localStorage) ───────────
 let layoutOverride = null;
@@ -962,15 +937,6 @@ const prizePopup  = document.getElementById('prize-popup');
 const prizeNameEl = document.getElementById('prize-name');
 const prizeCard   = document.getElementById('prize-card');
 const prizeEmoji  = document.getElementById('prize-emoji');
-const resultsList = document.getElementById('results-list');
-
-function addResult(prize, color) {
-  const el = document.createElement('div');
-  el.className='result-item'; el.textContent=prize;
-  el.style.color=color; el.style.textShadow=`0 0 5px ${color}`;
-  resultsList.prepend(el);
-  while (resultsList.children.length > 50) resultsList.removeChild(resultsList.lastChild);
-}
 
 function showPrizePopup(slotIdx) {
   const color = SLOT_COLORS[slotIdx], prize = SLOT_PRIZES[slotIdx];
@@ -978,7 +944,6 @@ function showPrizePopup(slotIdx) {
   prizeEmoji.textContent  = CAT_EMOJIS[slotIdx];
   prizeCard.style.setProperty('--prize-color', color);
   prizePopup.classList.add('visible');
-  addResult(prize, color);
 }
 prizePopup.addEventListener('pointerup', ()=>{ prizePopup.classList.remove('visible'); autoReset(); });
 
