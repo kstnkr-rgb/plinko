@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>PURRfect PLINKO</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; }
+
+  body {
+    background: #1C0608;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Nunito', sans-serif;
+    overflow: hidden;
+  }
+
+  #game-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 540px;
+    height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  #header {
+    width: 100%;
+    padding: 6px 14px 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    gap: 8px;
+  }
+
+  #title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 20px;
+    color: #F0C050;
+    text-shadow: 0 2px 0 #7A3000, 0 0 18px rgba(240,160,40,0.45);
+    text-align: center;
+    flex: 1;
+  }
+  #title span { color: #fff; }
+
+  #btn-bg {
+    font-size: 16px;
+    line-height: 1;
+    background: linear-gradient(180deg, #9B3A1A 0%, #7A2810 100%);
+    border: 2px solid #C86030;
+    border-radius: 10px;
+    padding: 5px 8px;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #4A1000, inset 0 1px 0 rgba(255,200,100,0.2);
+    transition: transform 0.1s, box-shadow 0.1s;
+    touch-action: manipulation;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  #btn-bg:hover  { transform: translateY(-1px); box-shadow: 0 4px 0 #4A1000; }
+  #btn-bg:active { transform: translateY(2px);  box-shadow: 0 1px 0 #4A1000; }
+  #btn-bg-dot {
+    font-family: 'Fredoka One', cursive;
+    font-size: 10px;
+    color: rgba(245,220,160,0.7);
+  }
+
+  #btn-remove {
+    font-family: 'Fredoka One', cursive;
+    font-size: 12px;
+    color: #F5E6C8;
+    background: linear-gradient(180deg, #9B3A1A 0%, #7A2810 100%);
+    border: 2px solid #C86030;
+    border-radius: 10px;
+    padding: 5px 10px;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #4A1000, inset 0 1px 0 rgba(255,200,100,0.2);
+    transition: transform 0.1s, box-shadow 0.1s;
+    white-space: nowrap;
+    touch-action: manipulation;
+    flex-shrink: 0;
+  }
+  #btn-remove:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 0 #4A1000; }
+  #btn-remove:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #4A1000; }
+  #btn-remove:disabled { opacity: 0.3; cursor: not-allowed; }
+  #btn-remove.active {
+    background: linear-gradient(180deg, #C83018 0%, #A02010 100%);
+    border-color: #FF7050;
+    animation: removePulse 0.8s ease-in-out infinite;
+  }
+  @keyframes removePulse {
+    0%,100% { box-shadow: 0 3px 0 #4A1000, 0 0 10px rgba(200,50,20,0.4); }
+    50%      { box-shadow: 0 3px 0 #4A1000, 0 0 22px rgba(200,50,20,0.9); }
+  }
+
+  /* ── MAIN ── */
+  #main-row {
+    display: flex;
+    flex: 1;
+    width: 100%;
+    min-height: 0;
+  }
+
+  #canvas-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+  }
+
+  #gameCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: crosshair;
+  }
+  #gameCanvas.remove-mode { cursor: cell; }
+
+  #hint {
+    position: absolute;
+    top: 10px; left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Fredoka One', cursive;
+    font-size: 12px;
+    color: rgba(245,220,160,0.8);
+    pointer-events: none;
+    white-space: nowrap;
+    animation: blink 2s ease-in-out infinite;
+  }
+  #hint-remove {
+    position: absolute;
+    top: 10px; left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Fredoka One', cursive;
+    font-size: 12px;
+    color: #FF8060;
+    pointer-events: none;
+    white-space: nowrap;
+    display: none;
+    animation: blink 0.8s ease-in-out infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:.8} 50%{opacity:1} }
+
+  #win-flash {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.1s;
+  }
+
+  /* ── RESULTS ── */
+  #results-col {
+    width: 54px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 8px;
+    border-left: 1px solid rgba(200,140,60,0.15);
+    background: rgba(0,0,0,0.3);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  #results-col .col-label {
+    font-family: 'Fredoka One', cursive;
+    font-size: 8px;
+    color: rgba(240,200,100,0.4);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+  }
+  #results-list {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    overflow: hidden;
+    flex: 1;
+    width: 100%;
+  }
+  .result-item {
+    font-family: 'Fredoka One', cursive;
+    font-size: 9px;
+    text-align: center;
+    line-height: 1.2;
+    padding: 2px 3px;
+    width: 50px;
+    word-break: break-word;
+    animation: slideIn 0.25s ease-out;
+  }
+  @keyframes slideIn { from{opacity:0;transform:translateX(10px)} to{opacity:1;transform:translateX(0)} }
+
+  /* ── BOTTOM BAR ── */
+  #bottom-bar {
+    width: 100%;
+    padding: 6px 16px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: rgba(0,0,0,0.35);
+    border-top: 1px solid rgba(200,140,60,0.18);
+  }
+  #btn-drop {
+    font-family: 'Fredoka One', cursive;
+    font-size: 18px;
+    color: #3A0A00;
+    background: linear-gradient(180deg, #F09050 0%, #D06020 55%, #E07030 100%);
+    border: 3px solid #F8C080;
+    border-radius: 32px;
+    padding: 10px 32px;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #8B3000, 0 6px 20px rgba(200,80,20,0.4), inset 0 1px 0 rgba(255,230,160,0.4);
+    transition: transform 0.12s, box-shadow 0.12s;
+    touch-action: manipulation;
+    letter-spacing: 1px;
+  }
+  #btn-drop:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 0 #8B3000, 0 8px 24px rgba(200,80,20,0.5); }
+  #btn-drop:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 #8B3000; }
+  #btn-drop:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── PRIZE POPUP ── */
+  #prize-popup {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(15,5,2,0.85);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(5px);
+    cursor: pointer;
+  }
+  #prize-popup.visible { display: flex; animation: popupIn 0.35s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes popupIn { from{opacity:0;transform:scale(0.5) rotate(-6deg)} to{opacity:1;transform:scale(1) rotate(0)} }
+  #prize-card {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    background: linear-gradient(160deg, #5A1A08 0%, #3A0C04 100%);
+    border: 3px solid var(--prize-color, #E8732A);
+    border-radius: 24px;
+    padding: 28px 52px 24px;
+    box-shadow: 0 0 40px var(--prize-color, #E8732A), 0 12px 40px rgba(0,0,0,0.7);
+    text-align: center;
+  }
+  #prize-emoji  { font-size: 42px; line-height: 1; }
+  #prize-label  { font-family:'Nunito',sans-serif; font-size:10px; font-weight:800; letter-spacing:4px; color:rgba(245,220,160,0.55); text-transform:uppercase; }
+  #prize-name   { font-family:'Fredoka One',cursive; font-size:32px; color:var(--prize-color,#E8732A); text-shadow:0 0 20px var(--prize-color,#E8732A); }
+  #prize-tap    { font-family:'Nunito',sans-serif; font-size:11px; font-weight:600; color:rgba(245,220,160,0.35); letter-spacing:1px; animation:blink 1.8s ease-in-out infinite; }
+
+  /* ── VERSION ── */
+  #version-tag {
+    position: absolute;
+    bottom: 6px; right: 8px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 10px;
+    color: rgba(240,200,100,0.28);
+    pointer-events: none;
+    letter-spacing: 0.5px;
+    user-select: none;
+  }
+</style>
+</head>
+<body>
+<div id="game-wrapper">
+  <div id="header">
+    <button id="btn-bg">🎨<span id="btn-bg-dot">1</span></button>
+    <div id="title">PURRfect <span>PLINKO</span></div>
+    <button id="btn-remove">УБРАТЬ — 5Б</button>
+  </div>
+  <div id="main-row">
+    <div id="canvas-wrap">
+      <canvas id="gameCanvas"></canvas>
+      <div id="hint">НАЖМИТЕ ДЛЯ БРОСКА</div>
+      <div id="hint-remove">НАЖМИТЕ НА СТАКАН</div>
+      <div id="win-flash"></div>
+      <div id="version-tag">v1.0</div>
+    </div>
+    <div id="results-col">
+      <div class="col-label">призы</div>
+      <div id="results-list"></div>
+    </div>
+  </div>
+  <div id="bottom-bar">
+    <button id="btn-drop">🐾 БРОСИТЬ КЛУБОК!</button>
+  </div>
+</div>
+
+<div id="prize-popup">
+  <div id="prize-card">
+    <div id="prize-emoji">🐱</div>
+    <div id="prize-label">ВЫ ВЫИГРАЛИ</div>
+    <div id="prize-name"></div>
+    <div id="prize-tap">нажмите для продолжения</div>
+  </div>
+</div>
+
+<script>
+// ─── assets ───────────────────────────────────────────────────────────────────
+const imgPeg  = new Image(); imgPeg.src  = 'peg.png';
+const imgBall = new Image(); imgBall.src = 'ball.png';
+const imgSide = new Image(); imgSide.src = 'side.png';
+
+const BG_SRCS = ['back_table_1.png', 'back_table_2.png', 'back_table_3.png'];
+const bgImgs  = BG_SRCS.map(src => { const i = new Image(); i.src = src; return i; });
+let   bgIdx   = 0;
+// convenience getter — used everywhere imgBack was used
+const imgBack = { get complete(){ return bgImgs[bgIdx].complete; },
+                  get naturalWidth(){ return bgImgs[bgIdx].naturalWidth; } };
+function currentBgImg() { return bgImgs[bgIdx]; }
+
+const CAT_EMOJIS = ['😺','🐱','🐈‍⬛','🐈','😸'];
+const catImgs = [0,1,2,3,4].map(i => {
+  const img = new Image();
+  img.src = `cat${i}.png`;
+  return img;
+});
+const catImgsClosed = [0,1,2,3,4].map(i => {
+  const img = new Image();
+  img.src = `cat${i}_c.png`;
+  return img;
+});
+
+// Sprite aspect ratios (height / width)
+const CAT_ASPECT = 288 / 324;   // cat0.png: 288/324 ≈ 0.889
+const PEG_ASPECT = 219 / 189;   // ≈ 1.159
+// side.png: 180/890 ≈ 0.202 (narrow vertical strip)
+const SIDE_ASPECT = 180 / 890;
+
+// Pegs are placed via editor (8×11 grid). Empty = no default pegs.
+const CUSTOM_PEGS = [];
+
+// ─── live editor override (set via BroadcastChannel / localStorage) ───────────
+let layoutOverride = null;
+
+// ─── physics tunables (overridden by editor) ──────────────────────────────────
+let PHY = {
+  chipSize: 0.21,   // CHIP_R = SLOT_W_VIS * chipSize
+  pegH:     1.5,    // extra random horizontal kick after peg bounce
+  pegV:     0.65,   // restitution coefficient (0=dead, 1=perfect elastic)
+  toothH:   2.0,    // tooth bounce horizontal  (actual vx = toothH + random*3)
+  toothV:   0.5,    // tooth bounce vertical    (actual vy = |vy|*toothV + toothV + random*1.5)
+};
+
+// ─── canvas / DOM ─────────────────────────────────────────────────────────────
+const canvas    = document.getElementById('gameCanvas');
+const ctx       = canvas.getContext('2d');
+const flash     = document.getElementById('win-flash');
+const hint      = document.getElementById('hint');
+const hintRem   = document.getElementById('hint-remove');
+const btnRemove = document.getElementById('btn-remove');
+const btnDrop   = document.getElementById('btn-drop');
+
+// ─── layout vars (computed by resize) ────────────────────────────────────────
+let W, H;
+let BOARD_X, BOARD_W, BOARD_Y;   // rectangular field geometry
+let SLOT_COUNT, SLOT_LEFT, SLOT_W_VIS, SLOT_TOP_Y, SLOT_H;
+let CAT_W, CAT_H, CHIP_LAND_Y;
+let PEG_R, PEG_START_Y;
+let CHIP_R, TOOTH_R;
+let wallPegs = [];
+
+// ─── game state ───────────────────────────────────────────────────────────────
+let gameState    = 'waiting';
+let removeMode   = false;
+let removeCount  = 0;
+let removedSlots = [];
+let hoverSlot    = -1;
+
+// ─── prizes ───────────────────────────────────────────────────────────────────
+const VERSION = 'v2.2';
+document.getElementById('version-tag').textContent = VERSION;
+const SLOT_COUNT_FIXED = 5;
+const ALL_PRIZES = [
+  '-10%','Предсказание',
+  'Кофе','-20%','50Б','-15%',
+  'Фишка','Скидка на сладкое','Скидка на кошачий корм','Билет на айфон'
+];
+function generatePrizes() {
+  const pool = [...ALL_PRIZES];
+  for (let i = pool.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [pool[i],pool[j]] = [pool[j],pool[i]];
+  }
+  return pool.slice(0, SLOT_COUNT_FIXED);
+}
+let SLOT_PRIZES = generatePrizes();
+
+// ─── physics objects ──────────────────────────────────────────────────────────
+const chips = [], particles = [];
+let pegs = [];
+
+// ─── wall bounds — simple rectangle ──────────────────────────────────────────
+function getWallBounds() {
+  return { left: BOARD_X, right: BOARD_X + BOARD_W };
+}
+
+// ─── cup positions (from editor or auto-layout) ───────────────────────────────
+const CAT_EAR_FRAC = 0.16;  // top 16% of sprite = ears above slot line
+
+function getCupRects() {
+  const src = layoutOverride && layoutOverride.cups;
+  if (src && src.length === SLOT_COUNT) {
+    return src.map(c => {
+      const cw = c.wf * W, ch = cw * CAT_ASPECT;
+      return { x: c.xf * W, y: c.yf * H, w: cw, h: ch };
+    });
+  }
+  // default: auto-distribute across board
+  return Array(SLOT_COUNT).fill(null).map((_, i) => ({
+    x: SLOT_LEFT + i * SLOT_W_VIS + (SLOT_W_VIS - CAT_W) / 2,
+    y: SLOT_TOP_Y - CAT_H * CAT_EAR_FRAC,
+    w: CAT_W, h: CAT_H
+  }));
+}
+
+function findSlotForChip(x) {
+  const rects = getCupRects();
+  for (let i = 0; i < rects.length; i++)
+    if (x >= rects[i].x && x <= rects[i].x + rects[i].w) return i;
+  // nearest center fallback
+  let best = 0, bestD = Infinity;
+  for (let i = 0; i < rects.length; i++) {
+    const d = Math.abs(x - (rects[i].x + rects[i].w / 2));
+    if (d < bestD) { bestD = d; best = i; }
+  }
+  return best;
+}
+
+// ─── resize ───────────────────────────────────────────────────────────────────
+function resize() {
+  const wrap = document.getElementById('canvas-wrap');
+  W = wrap.clientWidth;
+  H = wrap.clientHeight;
+  canvas.width  = W;
+  canvas.height = H;
+
+  // Rectangular field (like classic plinko)
+  BOARD_X = W * 0.05;
+  BOARD_W = W * 0.90;
+  BOARD_Y = H * 0.02;
+
+  // Slots at the bottom
+  SLOT_COUNT  = SLOT_COUNT_FIXED;
+  SLOT_H      = H * 0.22;
+  SLOT_TOP_Y  = H - SLOT_H;
+  SLOT_LEFT   = BOARD_X;
+  SLOT_W_VIS  = BOARD_W / SLOT_COUNT;
+
+  // Cat cup size — 90% of slot width, centred
+  CAT_W = SLOT_W_VIS * 0.90;
+  CAT_H = CAT_W * CAT_ASPECT;
+
+  PEG_R   = Math.max(4, SLOT_W_VIS * 0.08);
+  CHIP_R  = Math.max(8, SLOT_W_VIS * PHY.chipSize);
+  TOOTH_R = CHIP_R * 0.75;
+
+  PEG_START_Y = H * 0.08;
+
+  if (removedSlots.length !== SLOT_COUNT)
+    removedSlots = new Array(SLOT_COUNT).fill(false);
+}
+
+// ─── wall teeth — placed via editor, stored as {yf, side} ───────────────────
+function generateWallPegs() {
+  const src = (layoutOverride && layoutOverride.teeth) ? layoutOverride.teeth : [];
+  if (!src.length) return [];
+  // Tip protrudes inward; collision circle centered at tip
+  const tipDist = TOOTH_R * 2.2;
+  return src.map(t => ({
+    x:    t.side === 'L' ? BOARD_X + tipDist : BOARD_X + BOARD_W - tipDist,
+    y:    t.yf * H,
+    side: t.side
+  }));
+}
+
+// ─── peg positions — from editor grid (xf×W, yf×H) ──────────────────────────
+function getPegPositions() {
+  if (CUSTOM_PEGS.length > 0)
+    return CUSTOM_PEGS.map(p => ({ x: p.xf * W, y: p.yf * H }));
+  if (layoutOverride && layoutOverride.pegs && layoutOverride.pegs.length > 0)
+    return layoutOverride.pegs.map(p => ({ x: p.xf * W, y: p.yf * H }));
+  return [];
+}
+
+// ─── UI ───────────────────────────────────────────────────────────────────────
+function autoReset() {
+  SLOT_PRIZES  = generatePrizes();
+  removedSlots = new Array(SLOT_COUNT).fill(false);
+  removeCount  = 0; removeMode = false; hoverSlot = -1;
+  chips.length = 0;
+  gameState    = 'waiting';
+  updateUI();
+}
+
+function updateUI() {
+  hint.style.display    = (gameState==='waiting' && !removeMode) ? '' : 'none';
+  hintRem.style.display = removeMode ? '' : 'none';
+
+  const canRemove = gameState==='waiting' && removeCount<2;
+  btnRemove.disabled    = !canRemove;
+  btnRemove.textContent = `УБРАТЬ — ${removeCount===0?5:10}Б`;
+  btnRemove.classList.toggle('active', removeMode);
+  canvas.classList.toggle('remove-mode', removeMode);
+  btnDrop.disabled = (gameState!=='waiting' || removeMode);
+}
+
+// ─── chip ─────────────────────────────────────────────────────────────────────
+function spawnChip(x) {
+  // Clamp spawn x to the inner field at the top of the peg zone
+  const { left: tL, right: tR } = getWallBounds(PEG_START_Y);
+  chips.push({
+    x: Math.max(tL + CHIP_R, Math.min(tR - CHIP_R, x)),
+    y: PEG_START_Y + CHIP_R,
+    vx: (Math.random()-0.5)*0.5, vy: 1,
+    r: CHIP_R, trail: [], landed: false,
+    toothCD: 0
+  });
+  gameState = 'dropping';
+  updateUI();
+}
+
+function spawnParticles(x, y, color, count=12) {
+  for (let i=0; i<count; i++) {
+    const angle=(Math.PI*2/count)*i+Math.random()*0.3, speed=1.5+Math.random()*3;
+    particles.push({x, y, vx:Math.cos(angle)*speed, vy:Math.sin(angle)*speed,
+      r:2+Math.random()*3, life:1, color, decay:0.02+Math.random()*0.02});
+  }
+}
+
+// Big colourful burst when ball enters a cup
+const BURST_COLORS = ['#FF5C5C','#FFD93D','#6BCB77','#4D96FF','#FF9A3C','#C77DFF','#FF6BD6','#00D4AA'];
+function spawnBurst(x, y, baseColor, count=48) {
+  // always include the slot's own colour + random festive colours
+  const palette = [baseColor, baseColor, ...BURST_COLORS];
+  for (let i = 0; i < count; i++) {
+    // angles span the upper semicircle (-π … 0) so all particles fly upward
+    const angle = -Math.PI + (Math.PI / count) * i + Math.random() * (Math.PI / count);
+    const speed = 2.5 + Math.random()*6.0;
+    const color = palette[Math.floor(Math.random()*palette.length)];
+    particles.push({
+      x, y,
+      vx: Math.cos(angle)*speed,
+      vy: Math.sin(angle)*speed,   // always negative (upward in canvas)
+      r:  2.5 + Math.random()*4.5,
+      life: 1,
+      color,
+      decay: 0.010 + Math.random()*0.012
+    });
+  }
+}
+
+// ─── update ───────────────────────────────────────────────────────────────────
+function update() {
+  const gravity = 0.25, friction = 0.98;
+  const slotTop = SLOT_TOP_Y;
+
+  for (let chip of chips) {
+    if (chip.landed) continue;
+
+
+    chip.trail.push({x: chip.x, y: chip.y});
+    if (chip.trail.length > 12) chip.trail.shift();
+
+    chip.vy += gravity; chip.vx *= friction;
+    chip.x  += chip.vx; chip.y  += chip.vy;
+
+    // ── slanted wall bounce ──
+    const { left: wL, right: wR } = getWallBounds(chip.y);
+    if (chip.x - chip.r < wL) { chip.x = wL + chip.r;  chip.vx =  Math.abs(chip.vx) * 0.5; }
+    if (chip.x + chip.r > wR) { chip.x = wR - chip.r;  chip.vx = -Math.abs(chip.vx) * 0.5; }
+
+    // ── peg collision ──
+    for (let peg of pegs) {
+      const dx=chip.x-peg.x, dy=chip.y-peg.y;
+      const dist=Math.sqrt(dx*dx+dy*dy), minD=chip.r+PEG_R;
+      if (dist<minD && dist>0.01) {
+        // push out of overlap
+        chip.x += (dx/dist)*(minD-dist); chip.y += (dy/dist)*(minD-dist);
+        const nx = dx/dist, ny = dy/dist;
+        const vDotN = chip.vx*nx + chip.vy*ny;
+        // only apply bounce if actually approaching (vDotN < 0)
+        // without this check the formula misfires when ball tunnels through a peg
+        // and ends up on the far side already moving away — giving wrong results
+        if (vDotN < 0) {
+          // physics reflection — ball can bounce upward
+          chip.vx -= (1 + PHY.pegV) * vDotN * nx;
+          chip.vy -= (1 + PHY.pegV) * vDotN * ny;
+          // tiny random nudge for plinko unpredictability (does NOT add energy)
+          const dir = dx > chip.r*0.1 ? 1 : dx < -chip.r*0.1 ? -1 : (Math.random()<0.5?1:-1);
+          chip.vx += dir * PHY.pegH * Math.random() * 0.25;
+        }
+        break;
+      }
+    }
+
+    // ── stuck detection: kick downward if no vertical progress for 50 frames ──
+    if (chip.y > (chip._lastY||0) + 2) { chip._lastY = chip.y; chip._stuck = 0; }
+    else { chip._stuck = (chip._stuck||0) + 1; }
+    if (chip._stuck > 50) {
+      chip.vy = 7 + Math.random() * 3;
+      chip.vx = (Math.random() - 0.5) * 5;
+      chip._stuck = 0; chip._lastY = chip.y;
+    }
+
+    // ── post-peg wall re-check ──
+    const { left: wL2, right: wR2 } = getWallBounds(chip.y);
+    if (chip.x - chip.r < wL2) { chip.x = wL2 + chip.r;  if(chip.vx<0) chip.vx =  Math.abs(chip.vx)*0.6+0.5; }
+    if (chip.x + chip.r > wR2) { chip.x = wR2 - chip.r;  if(chip.vx>0) chip.vx = -(Math.abs(chip.vx)*0.6+0.5); }
+
+    // ── wall-tooth (notch) collision ──
+    if (chip.toothCD > 0) {
+      chip.toothCD--;
+    } else {
+      for (let wp of wallPegs) {
+        const dx=chip.x-wp.x, dy=chip.y-wp.y;
+        const dist=Math.sqrt(dx*dx+dy*dy), minD=chip.r+TOOTH_R;
+        if (dist<minD && dist>0.01) {
+          chip.x += (dx/dist)*(minD-dist); chip.y += (dy/dist)*(minD-dist);
+          // Deflect toward centre, guaranteed downward escape
+          const dir = wp.side==='L' ? 1 : -1;
+          chip.vx = dir * (PHY.toothH + Math.random() * 3.0);
+          chip.vy = Math.max(2.5, Math.abs(chip.vy)) + PHY.toothV + Math.random() * 1.5;
+          chip.toothCD = 18;   // ignore teeth for 18 frames so ball can escape
+          spawnParticles(wp.x, wp.y, '#C87040', 4);
+          break;
+        }
+      }
+    }
+
+    // ── slot detection (cup positions from editor) ──
+    if (chip.y + chip.r >= slotTop) {
+      const si = findSlotForChip(chip.x);
+      if (removedSlots[si]) {
+        // Bounce off removed cup
+        chip.y  = slotTop - chip.r;
+        chip.vy = -Math.abs(chip.vy) * 0.9;
+        chip.vx = (Math.random()-0.5)*16 + (chip.vx>=0?6:-6);
+        spawnParticles(chip.x, slotTop, SLOT_COLORS[si], 6);
+      } else {
+        // Ball vanishes at cup top → big burst → prize popup after particles
+        const cr = getCupRects()[si];
+        const burstX = chip.x;
+        const burstY = cr.y + cr.h * CAT_EAR_FRAC;   // top of cup body (below ears)
+        chip.landed = true;   // stop physics immediately
+        spawnBurst(burstX, burstY, SLOT_COLORS[si]);
+        triggerFlash(SLOT_COLORS[si]);
+        const capturedSlot = si;
+        // remove ball from array this frame so it never renders again
+        setTimeout(()=>{ const idx=chips.indexOf(chip); if(idx>-1) chips.splice(idx,1); }, 0);
+        // show popup after particles have had time to shine (~700 ms)
+        setTimeout(()=> showPrizePopup(capturedSlot), 700);
+      }
+    }
+  }
+
+  for (let i=particles.length-1; i>=0; i--) {
+    const p=particles[i];
+    p.x+=p.vx; p.y+=p.vy; p.vy+=0.1; p.life-=p.decay;
+    if (p.life<=0) particles.splice(i,1);
+  }
+}
+
+let flashTimer=null;
+function triggerFlash(color) {
+  flash.style.background=color; flash.style.opacity='0.2';
+  if (flashTimer) clearTimeout(flashTimer);
+  flashTimer=setTimeout(()=>{ flash.style.opacity='0'; }, 200);
+}
+
+// slot accent colors
+const SLOT_COLORS = ['#D8C8A0','#C07840','#5858A8','#907868','#98A8B8'];
+
+// ─── draw ─────────────────────────────────────────────────────────────────────
+
+function drawBackground() {
+  // Read layout from editor (fallback to defaults if not set)
+  const L = layoutOverride && layoutOverride.layout ? layoutOverride.layout : null;
+  const back = L && L.back ? L.back : { xf: BOARD_X/W, yf: BOARD_Y/H, wf: BOARD_W/W, hf: (H-BOARD_Y)/H };
+  const side = L && L.side ? L.side : { xf: 0,         yf: BOARD_Y/H, wf: 0.13,      hf: (H-BOARD_Y)/H };
+
+  // 1. Outer dark fill
+  ctx.fillStyle = '#1C0608';
+  ctx.fillRect(0, 0, W, H);
+
+  // 2. Playing-field background
+  if (imgBack.complete && imgBack.naturalWidth > 0) {
+    ctx.drawImage(currentBgImg(), back.xf*W, back.yf*H, back.wf*W, back.hf*H);
+  } else {
+    const grad = ctx.createLinearGradient(BOARD_X, BOARD_Y, BOARD_X, H);
+    grad.addColorStop(0, '#1A0A06'); grad.addColorStop(1, '#2A1208');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.roundRect(BOARD_X, BOARD_Y, BOARD_W, H-BOARD_Y, 8); ctx.fill();
+  }
+
+  // 3. Side frames (side.png, right side mirrored)
+  if (imgSide.complete && imgSide.naturalWidth > 0) {
+    const sx=side.xf*W, sy=side.yf*H, sw=side.wf*W, sh=side.hf*H;
+    ctx.drawImage(imgSide, sx, sy, sw, sh);
+    ctx.save(); ctx.translate(W, 0); ctx.scale(-1, 1);
+    ctx.drawImage(imgSide, sx, sy, sw, sh);
+    ctx.restore();
+  } else {
+    const gL = ctx.createLinearGradient(BOARD_X-4, 0, BOARD_X+18, 0);
+    gL.addColorStop(0, 'rgba(200,120,50,0.55)'); gL.addColorStop(1, 'transparent');
+    ctx.fillStyle = gL; ctx.fillRect(BOARD_X-4, BOARD_Y, 22, H-BOARD_Y);
+    const gR = ctx.createLinearGradient(BOARD_X+BOARD_W-18, 0, BOARD_X+BOARD_W+4, 0);
+    gR.addColorStop(0, 'transparent'); gR.addColorStop(1, 'rgba(200,120,50,0.55)');
+    ctx.fillStyle = gR; ctx.fillRect(BOARD_X+BOARD_W-18, BOARD_Y, 22, H-BOARD_Y);
+  }
+}
+
+function drawPegs() {
+  const s  = PEG_R * 2.4;
+  const sh = s * PEG_ASPECT;
+  if (imgPeg.complete && imgPeg.naturalWidth > 0) {
+    for (let peg of pegs) {
+      ctx.drawImage(imgPeg, peg.x - s/2, peg.y - sh*0.52, s, sh);
+    }
+  } else {
+    // Fallback hex
+    ctx.fillStyle = '#D4924A';
+    for (let peg of pegs) {
+      ctx.beginPath();
+      for (let i=0; i<6; i++) {
+        const a = (Math.PI/3)*i - Math.PI/6;
+        i===0 ? ctx.moveTo(peg.x + PEG_R*Math.cos(a), peg.y + PEG_R*Math.sin(a))
+              : ctx.lineTo(peg.x + PEG_R*Math.cos(a), peg.y + PEG_R*Math.sin(a));
+      }
+      ctx.closePath(); ctx.fill();
+    }
+  }
+}
+
+function drawSlots() {
+  const rects = getCupRects();
+  for (let i = 0; i < SLOT_COUNT; i++) {
+    const cr    = rects[i];
+    const cx    = cr.x + cr.w / 2;
+    const img   = catImgs[i];
+    const color   = SLOT_COLORS[i];
+    const removed = removedSlots[i];
+    const hov     = removeMode && hoverSlot === i && !removed;
+
+    if (img.complete && img.naturalWidth > 0) {
+      if (removed) {
+        const imgC = catImgsClosed[i];
+        if (imgC.complete && imgC.naturalWidth > 0) {
+          ctx.drawImage(imgC, cr.x, cr.y, cr.w, cr.h);
+        } else {
+          // fallback while _c image loads: faded original + X
+          ctx.save(); ctx.globalAlpha = 0.35;
+          ctx.drawImage(img, cr.x, cr.y, cr.w, cr.h);
+          ctx.restore();
+          ctx.save();
+          ctx.strokeStyle = 'rgba(255,80,50,0.7)';
+          ctx.lineWidth = Math.max(2, cr.w*0.08); ctx.lineCap = 'round';
+          const ms = cr.w*0.18, my2 = cr.y + cr.h*0.5;
+          ctx.beginPath(); ctx.moveTo(cx-ms, my2-ms); ctx.lineTo(cx+ms, my2+ms); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(cx+ms, my2-ms); ctx.lineTo(cx-ms, my2+ms); ctx.stroke();
+          ctx.restore();
+        }
+      } else {
+        if (hov) { ctx.save(); ctx.filter = 'brightness(1.25) saturate(1.4)'; }
+        ctx.drawImage(img, cr.x, cr.y, cr.w, cr.h);
+        if (hov) ctx.restore();
+      }
+    } else {
+      ctx.fillStyle = color + '66';
+      ctx.fillRect(cr.x+1, cr.y + cr.h*CAT_EAR_FRAC, cr.w-2, cr.h*(1-CAT_EAR_FRAC));
+    }
+
+    if (!removed) {
+      const label = SLOT_PRIZES[i];
+      const textY = cr.y + cr.h + 4;
+      const maxW  = cr.w - 6;
+      let fs = Math.max(7, Math.min(23, cr.w * 0.22));
+      ctx.save();
+      ctx.font = `${fs}px 'Fredoka One', cursive`;
+      let tw = ctx.measureText(label).width;
+      if (tw > maxW) { fs = Math.max(6, fs * maxW / tw); ctx.font = `${fs}px 'Fredoka One', cursive`; tw = ctx.measureText(label).width; }
+
+      // background pill
+      const padX = 5, padY = 2;
+      const pillW = tw + padX*2, pillH = fs + padY*2;
+      ctx.fillStyle = hov ? 'rgba(120,20,0,0.72)' : 'rgba(0,0,0,0.58)';
+      ctx.beginPath();
+      ctx.roundRect(cx - pillW/2, textY - padY, pillW, pillH, pillH/2);
+      ctx.fill();
+
+      ctx.fillStyle    = hov ? '#FF8060' : '#F0DDB0';
+      ctx.shadowColor  = hov ? '#FF6030' : color;
+      ctx.shadowBlur   = 4;
+      ctx.textAlign    = 'center'; ctx.textBaseline = 'top';
+      ctx.fillText(label, cx, textY);
+      ctx.shadowBlur = 0; ctx.restore();
+    }
+  }
+}
+
+function drawWallTeeth() {
+  const tipDist = TOOTH_R * 2.2;   // how far tip protrudes from wall
+  const hh      = TOOTH_R * 1.7;   // half-height of the base edge
+  for (let wp of wallPegs) {
+    const wallX = wp.side === 'L' ? BOARD_X : BOARD_X + BOARD_W;
+    const tipX  = wp.x;   // already set to tip position
+    const g = ctx.createLinearGradient(wallX, wp.y, tipX, wp.y);
+    g.addColorStop(0, 'rgba(110,60,10,0.97)');
+    g.addColorStop(1, 'rgba(215,145,45,0.80)');
+    ctx.beginPath();
+    ctx.moveTo(wallX, wp.y - hh);
+    ctx.lineTo(wallX, wp.y + hh);
+    ctx.lineTo(tipX,  wp.y);
+    ctx.closePath();
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(235,175,70,0.85)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    // small highlight at tip
+    ctx.beginPath();
+    ctx.arc(tipX, wp.y, TOOTH_R * 0.35, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,225,110,0.35)';
+    ctx.fill();
+  }
+}
+
+function drawChips() {
+  for (let chip of chips) {
+    // Trail
+    for (let t=0; t<chip.trail.length; t++) {
+      const a = (t/chip.trail.length)*0.3;
+      const r = chip.r*(t/chip.trail.length)*0.5;
+      ctx.beginPath();
+      ctx.arc(chip.trail[t].x, chip.trail[t].y, r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(200,160,60,${a})`;
+      ctx.fill();
+    }
+
+    if (imgBall.complete && imgBall.naturalWidth > 0) {
+      const s = chip.r * 1.0;
+      ctx.save();
+      ctx.shadowColor = 'rgba(200,160,60,0.5)';
+      ctx.shadowBlur  = chip.r;
+      ctx.drawImage(imgBall, chip.x - s/2, chip.y - s/2, s, s);
+      ctx.restore();
+    } else {
+      // Fallback circle
+      const cg = ctx.createRadialGradient(chip.x-chip.r*0.3, chip.y-chip.r*0.3, 0, chip.x, chip.y, chip.r);
+      cg.addColorStop(0,'#F0D898'); cg.addColorStop(0.5,'#C8A050'); cg.addColorStop(1,'#8A6018');
+      ctx.fillStyle = cg;
+      ctx.beginPath(); ctx.arc(chip.x, chip.y, chip.r, 0, Math.PI*2); ctx.fill();
+    }
+  }
+}
+
+function drawParticles() {
+  for (let p of particles) {
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color; ctx.shadowColor = p.color; ctx.shadowBlur = 5;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r*p.life, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+}
+
+function drawDropIndicator(x) {
+  if (x===undefined || gameState!=='waiting' || removeMode) return;
+  // Clamp to top field bounds
+  const { left: tL, right: tR } = getWallBounds(PEG_START_Y);
+  x = Math.max(tL + CHIP_R, Math.min(tR - CHIP_R, x));
+
+  ctx.save();
+  ctx.setLineDash([4,6]);
+  ctx.strokeStyle = 'rgba(220,170,70,0.35)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x, PEG_START_Y + CHIP_R*2 + 4);
+  ctx.lineTo(x, SLOT_TOP_Y);
+  ctx.stroke();
+  ctx.restore();
+
+  if (imgBall.complete && imgBall.naturalWidth > 0) {
+    const s = CHIP_R * 2.2;
+    ctx.save(); ctx.globalAlpha = 0.5;
+    ctx.drawImage(imgBall, x - s/2, PEG_START_Y + CHIP_R - s/2, s, s);
+    ctx.restore();
+  } else {
+    const g = ctx.createRadialGradient(x, PEG_START_Y+CHIP_R, 0, x, PEG_START_Y+CHIP_R, CHIP_R);
+    g.addColorStop(0,'rgba(200,160,60,0.38)'); g.addColorStop(1,'rgba(140,100,20,0.08)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(x, PEG_START_Y+CHIP_R, CHIP_R, 0, Math.PI*2); ctx.fill();
+  }
+}
+
+// ─── input ────────────────────────────────────────────────────────────────────
+let pointerX=undefined, pointerDown=false;
+
+function getCanvasPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  return { x:(e.clientX-rect.left)*(W/rect.width), y:(e.clientY-rect.top)*(H/rect.height) };
+}
+
+canvas.addEventListener('pointermove', e => {
+  const p = getCanvasPos(e); pointerX = p.x;
+  if (removeMode) {
+    hoverSlot = -1;
+    if (p.y >= SLOT_TOP_Y) {
+      const rects = getCupRects();
+      for (let k = 0; k < rects.length; k++) {
+        if (p.x >= rects[k].x && p.x <= rects[k].x + rects[k].w) { hoverSlot = k; break; }
+      }
+    }
+  }
+});
+canvas.addEventListener('pointerleave', ()=>{ if(!pointerDown) pointerX=undefined; hoverSlot=-1; });
+canvas.addEventListener('pointerdown',  e=>{ pointerDown=true; pointerX=getCanvasPos(e).x; e.preventDefault(); });
+canvas.addEventListener('pointerup', e => {
+  pointerDown = false;
+  const p = getCanvasPos(e);
+  if (removeMode) {
+    if (p.y >= SLOT_TOP_Y) {
+      const rects = getCupRects();
+      let si = -1;
+      for (let k = 0; k < rects.length; k++) {
+        if (p.x >= rects[k].x && p.x <= rects[k].x + rects[k].w) { si = k; break; }
+      }
+      if (si >= 0 && !removedSlots[si]) { removedSlots[si]=true; removeCount++; }
+    }
+    removeMode=false; hoverSlot=-1; updateUI(); e.preventDefault(); return;
+  }
+  if (gameState==='waiting') spawnChip(p.x);
+  e.preventDefault();
+});
+canvas.addEventListener('touchstart', e=>e.preventDefault(), {passive:false});
+canvas.addEventListener('touchmove',  e=>e.preventDefault(), {passive:false});
+canvas.addEventListener('touchend',   e=>e.preventDefault(), {passive:false});
+
+document.getElementById('btn-bg').addEventListener('click', () => {
+  bgIdx = (bgIdx + 1) % BG_SRCS.length;
+  document.getElementById('btn-bg-dot').textContent = bgIdx + 1;
+});
+
+btnRemove.addEventListener('click', ()=>{ if(!btnRemove.disabled){ removeMode=!removeMode; hoverSlot=-1; updateUI(); } });
+btnDrop.addEventListener('click', ()=>{
+  if (gameState!=='waiting' || removeMode) return;
+  // Drop near centre with slight random offset
+  const { left: tL, right: tR } = getWallBounds(PEG_START_Y);
+  const centre = (tL + tR) / 2;
+  spawnChip(centre + (Math.random()-0.5) * (tR-tL) * 0.25);
+});
+
+// ─── prize popup ─────────────────────────────────────────────────────────────
+const prizePopup  = document.getElementById('prize-popup');
+const prizeNameEl = document.getElementById('prize-name');
+const prizeCard   = document.getElementById('prize-card');
+const prizeEmoji  = document.getElementById('prize-emoji');
+const resultsList = document.getElementById('results-list');
+
+function addResult(prize, color) {
+  const el = document.createElement('div');
+  el.className='result-item'; el.textContent=prize;
+  el.style.color=color; el.style.textShadow=`0 0 5px ${color}`;
+  resultsList.prepend(el);
+  while (resultsList.children.length > 50) resultsList.removeChild(resultsList.lastChild);
+}
+
+function showPrizePopup(slotIdx) {
+  const color = SLOT_COLORS[slotIdx], prize = SLOT_PRIZES[slotIdx];
+  prizeNameEl.textContent = prize;
+  prizeEmoji.textContent  = CAT_EMOJIS[slotIdx];
+  prizeCard.style.setProperty('--prize-color', color);
+  prizePopup.classList.add('visible');
+  addResult(prize, color);
+}
+prizePopup.addEventListener('pointerup', ()=>{ prizePopup.classList.remove('visible'); autoReset(); });
+
+// ─── loop ─────────────────────────────────────────────────────────────────────
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  drawBackground();
+  drawDropIndicator(pointerX);
+  drawWallTeeth();
+  drawPegs();
+  drawSlots();
+  drawChips();
+  drawParticles();
+}
+
+function loop() { update(); draw(); requestAnimationFrame(loop); }
+
+// ─── apply layout from editor ─────────────────────────────────────────────────
+function applyLayout(data) {
+  layoutOverride = data;
+  if (data.physics) Object.assign(PHY, data.physics);
+  resize();
+  pegs     = getPegPositions();
+  wallPegs = generateWallPegs();
+}
+
+function init() {
+  resize();
+  // Restore last layout saved by editor
+  try {
+    const saved = localStorage.getItem('plinko_layout');
+    if (saved) {
+      const data = JSON.parse(saved);
+      layoutOverride = data;
+      if (data.physics) Object.assign(PHY, data.physics);
+      resize();
+    }
+  } catch {}
+  pegs     = getPegPositions();
+  wallPegs = generateWallPegs();
+  // Live updates from editor (BroadcastChannel — same origin, same browser)
+  try {
+    const ch = new BroadcastChannel('plinko_channel');
+    ch.onmessage = e => applyLayout(e.data);
+  } catch {}
+  updateUI();
+  loop();
+}
+
+window.addEventListener('resize', ()=>{
+  resize();
+  pegs     = getPegPositions();
+  wallPegs = generateWallPegs();
+});
+
+init();
+</script>
+</body>
+</html>

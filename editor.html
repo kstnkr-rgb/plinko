@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plinko Editor</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background:#111827; color:#e5e7eb;
+  font-family: system-ui, sans-serif;
+  display:flex; flex-direction:column; height:100vh; overflow:hidden;
+}
+#toolbar {
+  background:#1f2937; border-bottom:1px solid #374151;
+  padding:7px 12px;
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap; flex-shrink:0;
+}
+.mode-btn {
+  padding:5px 14px; border-radius:8px; border:2px solid #4b5563;
+  background:#374151; color:#9ca3af; cursor:pointer; font-size:13px; transition:all .15s;
+}
+.mode-btn.active                    { border-color:#60a5fa; background:#1e3a5f; color:#93c5fd; }
+.mode-btn[data-mode="teeth"].active { border-color:#f87171; background:#3f1d1d; color:#fca5a5; }
+.mode-btn[data-mode="layout"].active{ border-color:#a78bfa; background:#2e1f5e; color:#c4b5fd; }
+.mode-btn[data-mode="cups"].active  { border-color:#34d399; background:#064e3b; color:#6ee7b7; }
+.mode-btn:hover:not(.active){ border-color:#6b7280; color:#d1d5db; }
+.sep{ width:1px; height:26px; background:#374151; flex-shrink:0; }
+.tbtn{
+  padding:5px 12px; border-radius:7px; border:1px solid #4b5563;
+  background:#374151; color:#9ca3af; cursor:pointer; font-size:12px;
+}
+.tbtn:hover{ background:#4b5563; color:#e5e7eb; }
+.tbtn.red  { border-color:#7f1d1d; color:#fca5a5; }
+.tbtn.red:hover { background:#7f1d1d; }
+.tbtn.green{ border-color:#14532d; color:#86efac; }
+.tbtn.green:hover{ background:#14532d; }
+#snap-lbl{ font-size:12px; color:#6b7280; display:flex; align-items:center; gap:5px; cursor:pointer; }
+#snap-lbl input{ cursor:pointer; }
+#status{
+  font-size:12px; padding:4px 10px; border-radius:6px;
+  background:#0f172a; border:1px solid #1f2937; color:#4b5563; transition:all .3s; white-space:nowrap;
+}
+#status.sent{ color:#86efac; border-color:#14532d; background:#052e16; }
+
+#main{ display:flex; flex:1; min-height:0; }
+#canvas-wrap{
+  flex:1; min-width:0; overflow:auto;
+  display:flex; align-items:flex-start; justify-content:center;
+  background:#0f172a; padding:12px;
+}
+#cv{ display:block; }
+
+#sidebar{
+  width:270px; flex-shrink:0;
+  background:#1f2937; border-left:1px solid #374151;
+  display:flex; flex-direction:column; overflow:hidden;
+}
+#info{
+  padding:10px 12px; font-size:12px; line-height:1.8; color:#9ca3af;
+  border-bottom:1px solid #374151;
+}
+#info b{ color:#e5e7eb; }
+#info .stat{ color:#60a5fa; }
+
+#physics-panel{
+  border-top:1px solid #374151; padding:10px 12px; flex-shrink:0;
+}
+#physics-panel h3{
+  font-size:11px; font-weight:700; letter-spacing:1px;
+  color:#9ca3af; text-transform:uppercase; margin-bottom:8px;
+}
+.phy-row{ display:grid; grid-template-columns:1fr auto; align-items:center; gap:4px; margin-bottom:6px; }
+.phy-row label{ font-size:11px; color:#9ca3af; }
+.phy-row input[type=range]{ width:100%; accent-color:#60a5fa; cursor:pointer; grid-column:1/-1; margin-top:2px; }
+.phy-val{ font-size:11px; color:#60a5fa; font-variant-numeric:tabular-nums; min-width:28px; text-align:right; }
+
+#export-wrap{ flex:1; display:flex; flex-direction:column; padding:8px; gap:6px; min-height:0; }
+#export-hint{ font-size:11px; color:#4b5563; }
+#export-out{
+  flex:1; min-height:0; background:#0f172a; color:#86efac;
+  font-family:monospace; font-size:10.5px; border:1px solid #1e3a2f;
+  border-radius:5px; padding:8px; resize:none;
+}
+#copy-btn{ padding:7px; background:#14532d; border:1px solid #166534; color:#86efac; border-radius:6px; cursor:pointer; font-size:13px; }
+#copy-btn:hover{ background:#166534; }
+
+.hint-peg   { color:#fbbf24; }
+.hint-tooth { color:#f87171; }
+.hint-layout{ color:#a78bfa; }
+.hint-cups  { color:#34d399; }
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <button class="mode-btn active" data-mode="pegs">🟠 Пеги</button>
+  <button class="mode-btn" data-mode="teeth">🔺 Зубы</button>
+  <button class="mode-btn" data-mode="layout">🖼 Раскладка</button>
+  <button class="mode-btn" data-mode="cups">🥤 Стаканы</button>
+  <div class="sep"></div>
+  <button class="tbtn red" id="clr-pegs">✕ Пеги</button>
+  <button class="tbtn red" id="clr-teeth">✕ Зубы</button>
+  <button class="tbtn red" id="reset-layout">↺ Раскладка</button>
+  <button class="tbtn red" id="reset-cups">↺ Стаканы</button>
+  <div class="sep"></div>
+  <label id="snap-lbl"><input type="checkbox" id="snap-cb" checked> Сетка</label>
+  <div class="sep"></div>
+  <button class="tbtn" id="load-btn">📂 Загрузить</button>
+  <button class="tbtn green" id="export-btn">📋 Экспорт</button>
+  <div id="status">ожидание…</div>
+</div>
+
+<div id="main">
+  <div id="canvas-wrap"><canvas id="cv"></canvas></div>
+  <div id="sidebar">
+    <div id="info">
+      Режим: <b id="mode-name">Пеги</b><br>
+      <span id="mode-hint" class="hint-peg">ЛКМ — добавить · ПКМ / клик — удалить</span>
+      <br><br>
+      Пегов: <span class="stat" id="peg-cnt">0</span> &nbsp;&nbsp;
+      Зубов: <span class="stat" id="tooth-cnt">0</span><br>
+      <span style="font-size:10px;color:#4b5563;">Сетка 9×11 · Зубы: лево/право от центра = стенка</span>
+    </div>
+
+    <div id="physics-panel">
+      <h3>⚙ Физика мяча</h3>
+      <div class="phy-row">
+        <label>Размер мяча</label>
+        <span class="phy-val" id="val-chipSize">0.21</span>
+        <input type="range" id="sl-chipSize" min="0.05" max="0.50" step="0.01" value="0.21">
+      </div>
+      <div class="phy-row">
+        <label>Пег — случайность</label>
+        <span class="phy-val" id="val-pegH">1.5</span>
+        <input type="range" id="sl-pegH" min="0.0" max="6.0" step="0.1" value="1.5">
+      </div>
+      <div class="phy-row">
+        <label>Пег — упругость</label>
+        <span class="phy-val" id="val-pegV">0.65</span>
+        <input type="range" id="sl-pegV" min="0.0" max="1.2" step="0.05" value="0.65">
+      </div>
+    </div>
+
+    <div id="export-wrap">
+      <div id="export-hint">Экспорт → вставь в plinko.html:</div>
+      <textarea id="export-out" readonly placeholder="// нажмите Экспорт..."></textarea>
+      <button id="copy-btn">📋 Скопировать код</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── assets ───────────────────────────────────────────────────────────────────
+const imgPeg  = new Image(); imgPeg.src  = 'peg.png';
+const imgBack = new Image(); imgBack.src = 'back_table_1.png';
+const imgSide = new Image(); imgSide.src = 'side.png';
+[imgPeg, imgBack, imgSide].forEach(i => { i.onload = redraw; });
+
+const catImgs = [0,1,2,3,4].map(i => {
+  const img = new Image();
+  img.src = `cat${i}.png`;
+  img.onload = redraw;
+  return img;
+});
+
+const PEG_ASPECT = 219 / 189;
+const CAT_ASPECT = 288 / 324;   // cat sprite h/w
+const SLOT_COUNT = 5;
+
+// ─── canvas ───────────────────────────────────────────────────────────────────
+const cv   = document.getElementById('cv');
+const ctx  = cv.getContext('2d');
+const wrap = document.getElementById('canvas-wrap');
+
+let W = 400, BH = 700;
+
+function setupCanvas() {
+  W  = Math.min(480, wrap.clientWidth - 24);
+  BH = Math.round(W * 1.72);
+  cv.width  = W; cv.height = BH;
+  cv.style.width = cv.width + 'px'; cv.style.height = cv.height + 'px';
+}
+
+// ─── field geometry ───────────────────────────────────────────────────────────
+const BOARD_XF = 0.05, BOARD_WF = 0.90;
+const SLOT_H_F = 0.22;
+const PEG_YSTART = 0.08, PEG_YEND = 0.76;
+
+// ─── grid (9×11) ──────────────────────────────────────────────────────────────
+const GRID_COLS = 9, GRID_ROWS = 11;
+function gridX(col){ return (BOARD_XF + (col+0.5)*BOARD_WF/GRID_COLS)*W; }
+function gridY(row){ return (PEG_YSTART + row*(PEG_YEND-PEG_YSTART)/(GRID_ROWS-1))*BH; }
+function gridXF(col){ return BOARD_XF + (col+0.5)*BOARD_WF/GRID_COLS; }
+function gridYF(row){ return PEG_YSTART + row*(PEG_YEND-PEG_YSTART)/(GRID_ROWS-1); }
+
+function snapToGrid(x, y) {
+  let bestX=x, bestY=y, bestD=Infinity;
+  for (let c=0;c<GRID_COLS;c++) for (let r=0;r<GRID_ROWS;r++) {
+    const d=Math.hypot(x-gridX(c),y-gridY(r));
+    if(d<bestD){bestD=d;bestX=gridX(c);bestY=gridY(r);}
+  }
+  return {x:bestX,y:bestY};
+}
+function nearestGridFractions(x, y) {
+  let bxf=x/W,byf=y/BH,bd=Infinity;
+  for(let c=0;c<GRID_COLS;c++) for(let r=0;r<GRID_ROWS;r++){
+    const d=Math.hypot(x-gridX(c),y-gridY(r));
+    if(d<bd){bd=d;bxf=gridXF(c);byf=gridYF(r);}
+  }
+  return {xf:bxf,yf:byf};
+}
+function nearestRowYF(y) {
+  let best=gridYF(0),bd=Infinity;
+  for(let r=0;r<GRID_ROWS;r++){const d=Math.abs(y-gridY(r));if(d<bd){bd=d;best=gridYF(r);}}
+  return best;
+}
+
+// ─── default layout ───────────────────────────────────────────────────────────
+const DEFAULT_LAYOUT = () => ({
+  back: { xf:0.05, yf:0.02, wf:0.90, hf:0.98 },
+  side: { xf:0.00, yf:0.02, wf:0.13, hf:0.98 },
+});
+
+// default cups: 5 cups evenly across the board bottom area
+// xf = 0.059 + i*0.18  (BOARD_XF + i*SLOT_WF + (SLOT_WF - CUP_WF)/2)
+// yf = 0.766            (SLOT_TOP_YF - CAT_H_frac * CAT_EAR_FRAC)
+// wf = 0.162            (SLOT_WF * 0.90)
+const DEFAULT_CUPS = () => Array.from({length: SLOT_COUNT}, (_, i) => ({
+  xf: 0.059 + i * 0.18,
+  yf: 0.766,
+  wf: 0.162,
+}));
+
+// ─── state ────────────────────────────────────────────────────────────────────
+const S = {
+  mode: 'pegs',
+  pegs:   [],
+  teeth:  [],
+  layout: DEFAULT_LAYOUT(),
+  cups:   DEFAULT_CUPS(),
+  hover:      null,
+  toothHover: null,
+  snap: true,
+  physics: { chipSize:0.21, pegH:1.5, pegV:0.65, toothH:2.0, toothV:0.5 },
+};
+
+// ─── layout drag ──────────────────────────────────────────────────────────────
+const HANDLE_R = 7;
+let layoutDrag = null;
+// { el:'back'|'side'|'bottom', type:'move'|'nw'|'ne'|'sw'|'se', startMx, startMy, startR:{x,y,w,h} }
+
+function elRect(name) {
+  const r = S.layout[name];
+  return { x: r.xf*W, y: r.yf*BH, w: r.wf*W, h: r.hf*BH };
+}
+function saveElRect(name, r) {
+  S.layout[name] = { xf: r.x/W, yf: r.y/BH, wf: Math.max(0.02, r.w/W), hf: Math.max(0.02, r.h/BH) };
+}
+function hitHandle(r, mx, my) {
+  const corners = [
+    { t:'nw', cx:r.x,     cy:r.y     },
+    { t:'ne', cx:r.x+r.w, cy:r.y     },
+    { t:'sw', cx:r.x,     cy:r.y+r.h },
+    { t:'se', cx:r.x+r.w, cy:r.y+r.h },
+  ];
+  for (const c of corners)
+    if (Math.abs(mx-c.cx) < HANDLE_R*2 && Math.abs(my-c.cy) < HANDLE_R*2) return c.t;
+  if (mx>=r.x && mx<=r.x+r.w && my>=r.y && my<=r.y+r.h) return 'move';
+  return null;
+}
+function applyLayoutDrag(mx, my) {
+  if (!layoutDrag) return;
+  const { el, type, startMx, startMy, startR: sr } = layoutDrag;
+  const dx = mx - startMx, dy = my - startMy;
+  let {x,y,w,h} = sr;
+  if      (type==='move'){ x+=dx; y+=dy; }
+  else if (type==='se')  { w+=dx; h+=dy; }
+  else if (type==='sw')  { x+=dx; w-=dx; h+=dy; }
+  else if (type==='ne')  { w+=dx; y+=dy; h-=dy; }
+  else if (type==='nw')  { x+=dx; w-=dx; y+=dy; h-=dy; }
+  saveElRect(el, {x, y, w: Math.max(10, w), h: Math.max(10, h)});
+}
+
+// ─── cup drag ─────────────────────────────────────────────────────────────────
+let cupDrag = null;
+// { idx, type:'move'|'se', startMx, startMy, startC:{xf,yf,wf} }
+
+function getCupScreenRect(i) {
+  const c = S.cups[i];
+  const cw = c.wf * W, ch = cw * CAT_ASPECT;
+  return { x: c.xf * W, y: c.yf * BH, w: cw, h: ch };
+}
+
+function hitCup(mx, my) {
+  // Check from last to first so top-rendered cups (higher index) get priority
+  for (let i = S.cups.length - 1; i >= 0; i--) {
+    const r = getCupScreenRect(i);
+    // SE resize handle
+    if (Math.abs(mx - (r.x + r.w)) < HANDLE_R*2 && Math.abs(my - (r.y + r.h)) < HANDLE_R*2)
+      return { idx: i, type: 'se' };
+    // Body (move)
+    if (mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h)
+      return { idx: i, type: 'move' };
+  }
+  return null;
+}
+
+function applyCupDrag(mx, my) {
+  if (!cupDrag) return;
+  const { idx, type, startMx, startMy, startC: sc } = cupDrag;
+  const c = S.cups[idx];
+  if (type === 'move') {
+    c.xf = sc.xf + (mx - startMx) / W;
+    c.yf = sc.yf + (my - startMy) / BH;
+  } else if (type === 'se') {
+    c.wf = Math.max(0.05, sc.wf + (mx - startMx) / W);
+    // height auto-derived from aspect ratio in game, no hf stored
+  }
+}
+
+// ─── BroadcastChannel ─────────────────────────────────────────────────────────
+const LAYOUT_KEY = 'plinko_layout';
+let channel;
+try { channel = new BroadcastChannel('plinko_channel'); } catch {}
+
+const statusEl = document.getElementById('status');
+let statusTimer;
+function showStatus(ok) {
+  statusEl.textContent = ok ? '✓ Отправлено в игру' : '💾 Сохранено локально';
+  statusEl.classList.toggle('sent', ok);
+  clearTimeout(statusTimer);
+  statusTimer = setTimeout(()=>{ statusEl.textContent='ожидание…'; statusEl.classList.remove('sent'); }, 2500);
+}
+
+function buildPayload() {
+  return { pegs: S.pegs, teeth: S.teeth, layout: S.layout, cups: S.cups, physics: S.physics };
+}
+function save() {
+  const p = buildPayload();
+  localStorage.setItem(LAYOUT_KEY, JSON.stringify(p));
+  let sent=false;
+  if (channel) { try { channel.postMessage(p); sent=true; } catch {} }
+  showStatus(sent);
+}
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem(LAYOUT_KEY)||'null');
+    if (!d) return;
+    if (d.pegs)   S.pegs   = d.pegs;
+    if (d.teeth)  S.teeth  = d.teeth;
+    if (d.layout) Object.assign(S.layout, d.layout);
+    if (d.cups && d.cups.length === SLOT_COUNT) S.cups = d.cups;
+    if (d.physics) Object.assign(S.physics, d.physics);
+    syncSliders();
+  } catch {}
+}
+
+// ─── tooth helpers ────────────────────────────────────────────────────────────
+function toothDims(){ return { bx:BOARD_XF*W, bw:BOARD_WF*W, tw:BOARD_WF*W*0.07, th:BH*0.022 }; }
+function toothAt(x, y) {
+  const {bx,bw,tw} = toothDims();
+  for (let i=S.teeth.length-1;i>=0;i--) {
+    const t=S.teeth[i], ty=t.yf*BH;
+    const tipX = t.side==='L' ? bx+tw : bx+bw-tw;
+    if (Math.hypot(x-tipX, y-ty) < tw*1.6) return i;
+  }
+  return -1;
+}
+
+// ─── draw ─────────────────────────────────────────────────────────────────────
+const PEG_HIT_R = () => Math.max(7, W*0.018);
+
+const EL_META = {
+  back: { img: ()=>imgBack, color:'#6496ff', label:'Фон поля' },
+  side: { img: ()=>imgSide, color:'#64d48a', label:'Бок. рамка (зеркалится)' },
+};
+
+function drawToothShape(yf, side, alpha) {
+  const {bx,bw,tw,th} = toothDims();
+  const ty=yf*BH, wallX=side==='L'?bx:bx+bw, tipX=side==='L'?bx+tw:bx+bw-tw;
+  const g=ctx.createLinearGradient(wallX,ty,tipX,ty);
+  g.addColorStop(0,`rgba(130,75,15,${0.95*alpha})`);
+  g.addColorStop(1,`rgba(220,150,50,${0.85*alpha})`);
+  ctx.beginPath(); ctx.moveTo(wallX,ty-th); ctx.lineTo(wallX,ty+th); ctx.lineTo(tipX,ty); ctx.closePath();
+  ctx.fillStyle=g; ctx.fill();
+  ctx.strokeStyle=`rgba(235,175,70,${0.9*alpha})`; ctx.lineWidth=1.5; ctx.stroke();
+}
+
+function redraw() {
+  ctx.clearRect(0,0,cv.width,cv.height);
+  const bx=BOARD_XF*W, bw=BOARD_WF*W, slotTop=(1-SLOT_H_F)*BH;
+
+  // ── background fill ──
+  ctx.fillStyle='#2C1A0E'; ctx.fillRect(0,0,W,BH);
+
+  function drawImg(img, r) {
+    if (img.complete && img.naturalWidth>0) ctx.drawImage(img, r.x, r.y, r.w, r.h);
+  }
+
+  if (S.mode !== 'layout') {
+    // Draw images as in game
+    const L = S.layout;
+    drawImg(imgBack, { x:L.back.xf*W, y:L.back.yf*BH, w:L.back.wf*W, h:L.back.hf*BH });
+    const sw=L.side.wf*W, sy=L.side.yf*BH, sh=L.side.hf*BH;
+    drawImg(imgSide, {x:0,y:sy,w:sw,h:sh});
+    if (imgSide.complete && imgSide.naturalWidth>0) {
+      ctx.save(); ctx.translate(W,0); ctx.scale(-1,1);
+      ctx.drawImage(imgSide, 0, sy, sw, sh);
+      ctx.restore();
+    }
+  }
+
+  // ── slot dividers (non-layout, non-cups modes) ──
+  if (S.mode !== 'layout' && S.mode !== 'cups') {
+    ctx.strokeStyle='rgba(220,160,80,0.2)'; ctx.lineWidth=1;
+    for (let i=1;i<5;i++) {
+      const sx=bx+i*bw/5;
+      ctx.beginPath(); ctx.moveTo(sx,slotTop); ctx.lineTo(sx,BH); ctx.stroke();
+    }
+  }
+
+  // ── grid dots (pegs/teeth modes) ──
+  if (S.mode === 'pegs' || S.mode === 'teeth') {
+    for (let c=0;c<GRID_COLS;c++) for (let r=0;r<GRID_ROWS;r++) {
+      ctx.beginPath(); ctx.arc(gridX(c),gridY(r),2,0,Math.PI*2);
+      ctx.fillStyle='rgba(200,160,80,0.20)'; ctx.fill();
+    }
+    ctx.font='9px sans-serif'; ctx.fillStyle='rgba(200,160,80,0.25)';
+    ctx.textAlign='center';
+    for(let c=0;c<GRID_COLS;c++) ctx.fillText(c+1,gridX(c),gridY(0)-8);
+    ctx.textAlign='right';
+    for(let r=0;r<GRID_ROWS;r++) ctx.fillText(r+1,bx-4,gridY(r)+3);
+  }
+
+  // ── teeth ──
+  for (const t of S.teeth) drawToothShape(t.yf, t.side, 1.0);
+  if (S.mode==='teeth' && S.toothHover) drawToothShape(S.toothHover.yf, S.toothHover.side, 0.4);
+  if (S.mode==='teeth') {
+    const {tw}=toothDims();
+    ctx.setLineDash([3,5]); ctx.lineWidth=1; ctx.strokeStyle='rgba(248,113,113,0.25)';
+    ctx.beginPath(); ctx.moveTo(bx+tw,BH*0.06); ctx.lineTo(bx+tw,slotTop); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(bx+bw-tw,BH*0.06); ctx.lineTo(bx+bw-tw,slotTop); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // ── pegs ──
+  const pegR=PEG_HIT_R(), pegSz=pegR*2.4;
+  for (const p of S.pegs) {
+    const px=p.xf*W, py=p.yf*BH;
+    if (imgPeg.complete && imgPeg.naturalWidth) {
+      ctx.drawImage(imgPeg, px-pegSz/2, py-(pegSz*PEG_ASPECT)*0.52, pegSz, pegSz*PEG_ASPECT);
+    } else {
+      ctx.beginPath(); ctx.arc(px,py,pegR,0,Math.PI*2); ctx.fillStyle='#D4924A'; ctx.fill();
+    }
+  }
+  if (S.mode==='pegs' && S.hover) {
+    const {x:hx,y:hy}=S.hover;
+    ctx.beginPath(); ctx.arc(hx,hy,pegR,0,Math.PI*2);
+    ctx.fillStyle='rgba(251,191,36,0.35)'; ctx.fill();
+    ctx.strokeStyle='rgba(251,191,36,0.7)'; ctx.lineWidth=1.5; ctx.stroke();
+  }
+
+  // ── layout mode overlays ──
+  if (S.mode === 'layout') {
+    for (const [name, meta] of Object.entries(EL_META)) {
+      const r = elRect(name);
+      const img = meta.img();
+
+      if (img.complete && img.naturalWidth > 0) {
+        ctx.save(); ctx.globalAlpha = 0.65;
+        if (name === 'side') {
+          ctx.drawImage(img, r.x, r.y, r.w, r.h);
+          ctx.translate(W,0); ctx.scale(-1,1);
+          ctx.drawImage(img, r.x, r.y, r.w, r.h);
+        } else {
+          ctx.drawImage(img, r.x, r.y, r.w, r.h);
+        }
+        ctx.restore();
+      }
+
+      ctx.save();
+      ctx.strokeStyle = meta.color; ctx.lineWidth = 2;
+      ctx.setLineDash([5,3]); ctx.strokeRect(r.x, r.y, r.w, r.h); ctx.setLineDash([]);
+      ctx.fillStyle = meta.color;
+      for (const [cx,cy] of [[r.x,r.y],[r.x+r.w,r.y],[r.x,r.y+r.h],[r.x+r.w,r.y+r.h]])
+        ctx.fillRect(cx-HANDLE_R, cy-HANDLE_R, HANDLE_R*2, HANDLE_R*2);
+      ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText(meta.label, r.x+4, r.y+13);
+      ctx.font = '10px monospace'; ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillText(`${(r.w/W*100).toFixed(0)}×${(r.h/BH*100).toFixed(0)}%`, r.x+4, r.y+r.h-4);
+      ctx.restore();
+    }
+  }
+
+  // ── cups mode ──
+  if (S.mode === 'cups') {
+    // draw cat images for each cup with drag handles
+    for (let i = 0; i < S.cups.length; i++) {
+      const r = getCupScreenRect(i);
+      const img = catImgs[i];
+
+      // cat image (semi-transparent so handles are visible)
+      if (img.complete && img.naturalWidth > 0) {
+        ctx.save(); ctx.globalAlpha = 0.82;
+        ctx.drawImage(img, r.x, r.y, r.w, r.h);
+        ctx.restore();
+      } else {
+        // fallback colored placeholder
+        ctx.fillStyle = `hsla(${i*60},45%,30%,0.7)`;
+        ctx.fillRect(r.x, r.y, r.w, r.h);
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.font = `${Math.max(10, r.w*0.18)}px sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('🐱', r.x + r.w/2, r.y + r.h/2);
+        ctx.textBaseline = 'alphabetic';
+      }
+
+      // dashed border
+      ctx.save();
+      ctx.strokeStyle = '#34d399'; ctx.lineWidth = 2;
+      ctx.setLineDash([4,3]); ctx.strokeRect(r.x, r.y, r.w, r.h); ctx.setLineDash([]);
+      ctx.restore();
+
+      // SE resize handle (green square)
+      ctx.fillStyle = '#34d399';
+      ctx.fillRect(r.x + r.w - HANDLE_R, r.y + r.h - HANDLE_R, HANDLE_R*2, HANDLE_R*2);
+
+      // label
+      ctx.save();
+      ctx.fillStyle = '#34d399';
+      ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(`Стакан ${i+1}`, r.x + r.w/2, r.y + 13);
+      // size readout
+      ctx.font = '10px monospace'; ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.textAlign = 'left';
+      ctx.fillText(`${(r.w/W*100).toFixed(0)}×${(r.h/BH*100).toFixed(0)}%`, r.x+3, r.y+r.h-4);
+      ctx.restore();
+    }
+  }
+
+  document.getElementById('peg-cnt').textContent   = S.pegs.length;
+  document.getElementById('tooth-cnt').textContent = S.teeth.length;
+}
+
+// ─── canvas events ────────────────────────────────────────────────────────────
+function canvasCoords(e) {
+  const r=cv.getBoundingClientRect(), sx=cv.width/r.width, sy=cv.height/r.height;
+  const src=e.touches?e.touches[0]:e;
+  return {x:(src.clientX-r.left)*sx, y:(src.clientY-r.top)*sy};
+}
+function pegAt(cx,cy) {
+  const r=PEG_HIT_R()*1.6;
+  for(let i=S.pegs.length-1;i>=0;i--)
+    if(Math.hypot(cx-S.pegs[i].xf*W,cy-S.pegs[i].yf*BH)<r) return i;
+  return -1;
+}
+
+cv.addEventListener('contextmenu', e=>e.preventDefault());
+
+function onDown(e) {
+  e.preventDefault();
+  const {x,y} = canvasCoords(e);
+  const btn = e.button??0;
+
+  // ── cups mode ──
+  if (S.mode === 'cups') {
+    const hit = hitCup(x, y);
+    if (hit) {
+      const c = S.cups[hit.idx];
+      cupDrag = { idx: hit.idx, type: hit.type, startMx: x, startMy: y, startC: {...c} };
+    }
+    return;
+  }
+
+  // ── layout mode ──
+  if (S.mode === 'layout') {
+    for (const name of ['side','back']) {
+      const r = elRect(name);
+      const ht = hitHandle(r, x, y);
+      if (ht) {
+        layoutDrag = { el:name, type:ht, startMx:x, startMy:y, startR:{...r} };
+        return;
+      }
+    }
+    return;
+  }
+
+  // ── teeth mode ──
+  if (S.mode === 'teeth') {
+    const idx=toothAt(x,y);
+    if (btn===2||idx>=0) { if(idx>=0){S.teeth.splice(idx,1);save();} }
+    else {
+      const {bx,bw}=toothDims();
+      const side=x<bx+bw/2?'L':'R', yf=nearestRowYF(y);
+      if(!S.teeth.some(t=>t.side===side&&t.yf===yf)) S.teeth.push({yf,side});
+      save();
+    }
+    redraw(); return;
+  }
+
+  // ── pegs mode ──
+  const idx=pegAt(x,y);
+  if (btn===2||idx>=0) { if(idx>=0){S.pegs.splice(idx,1);save();} }
+  else {
+    const {xf,yf}=S.snap?nearestGridFractions(x,y):{xf:x/W,yf:y/BH};
+    if(!S.pegs.some(p=>p.xf===xf&&p.yf===yf)) S.pegs.push({xf,yf});
+    save();
+  }
+  redraw();
+}
+
+function onMove(e) {
+  e.preventDefault();
+  const {x,y}=canvasCoords(e);
+
+  // ── cups mode ──
+  if (S.mode === 'cups') {
+    if (cupDrag) { applyCupDrag(x, y); redraw(); }
+    else {
+      const hit = hitCup(x, y);
+      cv.style.cursor = hit ? (hit.type === 'se' ? 'se-resize' : 'move') : 'default';
+    }
+    return;
+  }
+
+  if (S.mode==='layout') {
+    if (layoutDrag) { applyLayoutDrag(x,y); redraw(); }
+    else {
+      let found=false;
+      for (const name of ['side','back']) {
+        if (hitHandle(elRect(name),x,y)) { found=true; break; }
+      }
+      cv.style.cursor = found ? 'pointer' : 'default';
+    }
+    return;
+  }
+
+  if (S.mode==='teeth') {
+    const {bx,bw}=toothDims();
+    S.toothHover={yf:nearestRowYF(y),side:x<bx+bw/2?'L':'R'};
+    S.hover=null; redraw(); return;
+  }
+
+  S.toothHover=null;
+  S.hover=S.snap?snapToGrid(x,y):{x,y};
+  redraw();
+}
+
+function onUp(e) {
+  e.preventDefault();
+  if (cupDrag)    { save(); cupDrag=null;    cv.style.cursor='default'; }
+  if (layoutDrag) { save(); layoutDrag=null; cv.style.cursor='default'; }
+}
+
+cv.addEventListener('mousedown',  onDown);
+cv.addEventListener('mousemove',  onMove);
+cv.addEventListener('mouseup',    onUp);
+cv.addEventListener('mouseleave', ()=>{
+  S.hover=null; S.toothHover=null;
+  if (layoutDrag) { save(); layoutDrag=null; }
+  if (cupDrag)    { save(); cupDrag=null; }
+  redraw();
+});
+cv.addEventListener('touchstart', onDown, {passive:false});
+cv.addEventListener('touchmove',  onMove, {passive:false});
+cv.addEventListener('touchend',   onUp,   {passive:false});
+
+// ─── mode buttons ─────────────────────────────────────────────────────────────
+const MODE_INFO = {
+  pegs:   { name:'Пеги',      hint:'ЛКМ — добавить · ПКМ / клик — удалить',                  cls:'hint-peg'    },
+  teeth:  { name:'Зубы',      hint:'ЛКМ — добавить · клик — удалить · лево/право = стенка',  cls:'hint-tooth'  },
+  layout: { name:'Раскладка', hint:'Перетащи блок · угловые ручки — изменить размер',         cls:'hint-layout' },
+  cups:   { name:'Стаканы',   hint:'Перетащи стакан · ручка SE — изменить ширину',            cls:'hint-cups'   },
+};
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', ()=>{
+    S.mode=btn.dataset.mode;
+    S.hover=null; S.toothHover=null; layoutDrag=null; cupDrag=null;
+    document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('active',b===btn));
+    const info=MODE_INFO[S.mode];
+    document.getElementById('mode-name').textContent=info.name;
+    const h=document.getElementById('mode-hint'); h.textContent=info.hint; h.className=info.cls;
+    cv.style.cursor='default';
+    redraw();
+  });
+});
+
+// ─── toolbar buttons ──────────────────────────────────────────────────────────
+document.getElementById('clr-pegs').addEventListener('click',()=>{
+  if(!confirm('Удалить все пеги?')) return; S.pegs=[]; save(); redraw();
+});
+document.getElementById('clr-teeth').addEventListener('click',()=>{
+  if(!confirm('Удалить все зубы?')) return; S.teeth=[]; save(); redraw();
+});
+document.getElementById('reset-layout').addEventListener('click',()=>{
+  if(!confirm('Сбросить раскладку к дефолту?')) return;
+  S.layout=DEFAULT_LAYOUT(); save(); redraw();
+});
+document.getElementById('reset-cups').addEventListener('click',()=>{
+  if(!confirm('Сбросить стаканы к дефолту?')) return;
+  S.cups=DEFAULT_CUPS(); save(); redraw();
+});
+document.getElementById('snap-cb').addEventListener('change', e=>{ S.snap=e.target.checked; });
+document.getElementById('load-btn').addEventListener('click',()=>{
+  load(); setupCanvas(); redraw();
+  statusEl.textContent=`Загружено: ${S.pegs.length} пег, ${S.teeth.length} зубов`;
+  statusEl.classList.add('sent');
+  clearTimeout(statusTimer);
+  statusTimer=setTimeout(()=>{statusEl.textContent='ожидание…';statusEl.classList.remove('sent');},3000);
+});
+
+// ─── export ───────────────────────────────────────────────────────────────────
+document.getElementById('export-btn').addEventListener('click',()=>{
+  const pl=S.pegs.map(p=>`  {xf:${p.xf.toFixed(4)},yf:${p.yf.toFixed(4)}}`).join(',\n');
+  const tl=S.teeth.map(t=>`  {yf:${t.yf.toFixed(4)},side:'${t.side}'}`).join(',\n');
+  document.getElementById('export-out').value=
+`const CUSTOM_PEGS=[\n${pl||'  // пусто'}\n];\n\nconst CUSTOM_TEETH=[\n${tl||'  // пусто'}\n];`;
+});
+document.getElementById('copy-btn').addEventListener('click',()=>{
+  document.getElementById('export-out').select(); document.execCommand('copy');
+  const btn=document.getElementById('copy-btn');
+  btn.textContent='✅ Скопировано!';
+  setTimeout(()=>btn.textContent='📋 Скопировать код',2000);
+});
+
+// ─── physics sliders ──────────────────────────────────────────────────────────
+const PHY_DEFS = [
+  {key:'chipSize',id:'sl-chipSize',valId:'val-chipSize',fmt:v=>v.toFixed(2)},
+  {key:'pegH',    id:'sl-pegH',    valId:'val-pegH',    fmt:v=>v.toFixed(1)},
+  {key:'pegV',    id:'sl-pegV',    valId:'val-pegV',    fmt:v=>v.toFixed(2)},
+];
+function syncSliders() {
+  PHY_DEFS.forEach(d=>{
+    const sl=document.getElementById(d.id), vl=document.getElementById(d.valId);
+    if(!sl) return; sl.value=S.physics[d.key]; vl.textContent=d.fmt(S.physics[d.key]);
+  });
+}
+PHY_DEFS.forEach(d=>{
+  const sl=document.getElementById(d.id), vl=document.getElementById(d.valId);
+  if(!sl) return;
+  sl.addEventListener('input',()=>{ S.physics[d.key]=parseFloat(sl.value); vl.textContent=d.fmt(S.physics[d.key]); save(); });
+});
+
+// ─── init ─────────────────────────────────────────────────────────────────────
+load(); syncSliders(); setupCanvas(); redraw();
+window.addEventListener('resize',()=>{ setupCanvas(); redraw(); });
+</script>
+</body>
+</html>
