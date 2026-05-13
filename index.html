@@ -304,14 +304,31 @@ const PEG_ASPECT = 219 / 189;   // ≈ 1.159
 // side.png: 180/890 ≈ 0.202 (narrow vertical strip)
 const SIDE_ASPECT = 180 / 890;
 
-// Полная сетка 9×11 — закреплена, не зависит от localStorage/редактора
-const CUSTOM_PEGS = (() => {
-  const cols=9, rows=11, bxf=0.05, bwf=0.90, yStart=0.08, yEnd=0.76, pegs=[];
-  for (let r=0; r<rows; r++)
-    for (let c=0; c<cols; c++)
-      pegs.push({ xf: bxf+(c+0.5)*bwf/cols, yf: yStart+r*(yEnd-yStart)/(rows-1) });
-  return pegs;
-})();
+const CUSTOM_PEGS=[
+  {xf:0.4000,yf:0.2160},
+  {xf:0.6000,yf:0.2160},
+  {xf:0.3000,yf:0.2840},
+  {xf:0.5000,yf:0.2840},
+  {xf:0.7000,yf:0.2840},
+  {xf:0.2000,yf:0.3520},
+  {xf:0.4000,yf:0.3520},
+  {xf:0.6000,yf:0.3520},
+  {xf:0.8000,yf:0.3520},
+  {xf:0.1000,yf:0.4200},
+  {xf:0.3000,yf:0.4200},
+  {xf:0.7000,yf:0.4200},
+  {xf:0.9000,yf:0.4200},
+  {xf:0.8000,yf:0.4880},
+  {xf:0.6000,yf:0.4880},
+  {xf:0.4000,yf:0.4880},
+  {xf:0.2000,yf:0.4880},
+  {xf:0.3000,yf:0.5560},
+  {xf:0.5000,yf:0.5560},
+  {xf:0.7000,yf:0.5560},
+  {xf:0.6000,yf:0.6240},
+  {xf:0.4000,yf:0.6240},
+  {xf:0.5000,yf:0.4200}
+];
 
 // ─── live editor override (set via BroadcastChannel / localStorage) ───────────
 let layoutOverride = null;
