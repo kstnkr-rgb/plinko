@@ -693,11 +693,18 @@ function drawBackground() {
     ctx.beginPath(); ctx.roundRect(BOARD_X, BOARD_Y, BOARD_W, H-BOARD_Y, 8); ctx.fill();
   }
 
-  // 3. Side frames (side.png, right side mirrored)
+  // 3. Side frames (side.png, right side mirrored) — clipped to outside the board
   if (imgSide.complete && imgSide.naturalWidth > 0) {
     const sx=side.xf*W, sy=side.yf*H, sw=side.wf*W, sh=side.hf*H;
+    // left side: clip to x < BOARD_X
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, 0, BOARD_X, H); ctx.clip();
     ctx.drawImage(imgSide, sx, sy, sw, sh);
-    ctx.save(); ctx.translate(W, 0); ctx.scale(-1, 1);
+    ctx.restore();
+    // right side: clip to x > BOARD_X + BOARD_W
+    ctx.save();
+    ctx.beginPath(); ctx.rect(BOARD_X + BOARD_W, 0, W - (BOARD_X + BOARD_W), H); ctx.clip();
+    ctx.translate(W, 0); ctx.scale(-1, 1);
     ctx.drawImage(imgSide, sx, sy, sw, sh);
     ctx.restore();
   } else {
