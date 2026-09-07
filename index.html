@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -216,7 +216,7 @@
   #prize-name   { font-family:'Fredoka One',cursive; font-size:32px; color:var(--prize-color,#E8732A); text-shadow:0 0 20px var(--prize-color,#E8732A); }
   #prize-tap    { font-family:'Nunito',sans-serif; font-size:11px; font-weight:600; color:rgba(245,220,160,0.35); letter-spacing:1px; animation:blink 1.8s ease-in-out infinite; }
 
-  /* ── АДАПТИВНОСТЬ ── */
+  /* ── RESPONSIVE ── */
   @media (max-width: 390px) {
     #header     { padding: 4px 10px 3px; }
     #title      { font-size: 16px; }
@@ -247,28 +247,28 @@
   <div id="header">
     <button id="btn-bg">🎨<span id="btn-bg-dot">1</span></button>
     <div id="title">PURRfect <span>PLINKO</span></div>
-    <button id="btn-remove">УБРАТЬ — 5Б</button>
+    <button id="btn-remove">REMOVE - 5 PTS</button>
   </div>
   <div id="main-row">
     <div id="canvas-wrap">
       <canvas id="gameCanvas"></canvas>
-      <div id="hint">НАЖМИТЕ ДЛЯ БРОСКА</div>
-      <div id="hint-remove">НАЖМИТЕ НА СТАКАН</div>
+      <div id="hint">TAP TO DROP</div>
+      <div id="hint-remove">TAP A CUP</div>
       <div id="win-flash"></div>
       <div id="version-tag">v1.0</div>
     </div>
   </div>
   <div id="bottom-bar">
-    <button id="btn-drop">🐾 БРОСИТЬ КЛУБОК!</button>
+    <button id="btn-drop">🐾 DROP THE YARN BALL!</button>
   </div>
 </div>
 
 <div id="prize-popup">
   <div id="prize-card">
     <div id="prize-emoji">🐱</div>
-    <div id="prize-label">ВЫ ВЫИГРАЛИ</div>
+    <div id="prize-label">YOU WON</div>
     <div id="prize-name"></div>
-    <div id="prize-tap">нажмите для продолжения</div>
+    <div id="prize-tap">tap to continue</div>
   </div>
 </div>
 
@@ -372,9 +372,9 @@ const VERSION = 'v2.2';
 document.getElementById('version-tag').textContent = VERSION;
 const SLOT_COUNT_FIXED = 5;
 const ALL_PRIZES = [
-  '-10%','Предсказание',
-  'Кофе','-20%','50Б','-15%',
-  'Фишка','Скидка на сладкое','Скидка на кошачий корм','Билет на айфон'
+  '-10%','Fortune',
+  'Coffee','-20%','50 pts','-15%',
+  'Token','Sweets discount','Cat food discount','iPhone ticket'
 ];
 function generatePrizes() {
   const pool = [...ALL_PRIZES];
@@ -499,7 +499,7 @@ function updateUI() {
 
   const canRemove = gameState==='waiting' && removeCount<2;
   btnRemove.disabled    = !canRemove;
-  btnRemove.textContent = `УБРАТЬ — ${removeCount===0?5:10}Б`;
+  btnRemove.textContent = `REMOVE - ${removeCount===0?5:10} PTS`;
   btnRemove.classList.toggle('active', removeMode);
   canvas.classList.toggle('remove-mode', removeMode);
   btnDrop.disabled = (gameState!=='waiting' || removeMode);

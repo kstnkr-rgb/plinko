@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -94,58 +94,58 @@ body {
 <body>
 
 <div id="toolbar">
-  <button class="mode-btn active" data-mode="pegs">🟠 Пеги</button>
-  <button class="mode-btn" data-mode="teeth">🔺 Зубы</button>
-  <button class="mode-btn" data-mode="layout">🖼 Раскладка</button>
-  <button class="mode-btn" data-mode="cups">🥤 Стаканы</button>
+  <button class="mode-btn active" data-mode="pegs">🟠 Pegs</button>
+  <button class="mode-btn" data-mode="teeth">🔺 Teeth</button>
+  <button class="mode-btn" data-mode="layout">🖼 Layout</button>
+  <button class="mode-btn" data-mode="cups">🥤 Cups</button>
   <div class="sep"></div>
-  <button class="tbtn red" id="clr-pegs">✕ Пеги</button>
-  <button class="tbtn red" id="clr-teeth">✕ Зубы</button>
-  <button class="tbtn red" id="reset-layout">↺ Раскладка</button>
-  <button class="tbtn red" id="reset-cups">↺ Стаканы</button>
+  <button class="tbtn red" id="clr-pegs">✕ Pegs</button>
+  <button class="tbtn red" id="clr-teeth">✕ Teeth</button>
+  <button class="tbtn red" id="reset-layout">↺ Layout</button>
+  <button class="tbtn red" id="reset-cups">↺ Cups</button>
   <div class="sep"></div>
-  <label id="snap-lbl"><input type="checkbox" id="snap-cb" checked> Сетка</label>
+  <label id="snap-lbl"><input type="checkbox" id="snap-cb" checked> Grid</label>
   <div class="sep"></div>
-  <button class="tbtn" id="load-btn">📂 Загрузить</button>
-  <button class="tbtn green" id="export-btn">📋 Экспорт</button>
-  <div id="status">ожидание…</div>
+  <button class="tbtn" id="load-btn">📂 Load</button>
+  <button class="tbtn green" id="export-btn">📋 Export</button>
+  <div id="status">idle…</div>
 </div>
 
 <div id="main">
   <div id="canvas-wrap"><canvas id="cv"></canvas></div>
   <div id="sidebar">
     <div id="info">
-      Режим: <b id="mode-name">Пеги</b><br>
-      <span id="mode-hint" class="hint-peg">ЛКМ — добавить · ПКМ / клик — удалить</span>
+      Mode: <b id="mode-name">Pegs</b><br>
+      <span id="mode-hint" class="hint-peg">LMB: add · RMB / click: remove</span>
       <br><br>
-      Пегов: <span class="stat" id="peg-cnt">0</span> &nbsp;&nbsp;
-      Зубов: <span class="stat" id="tooth-cnt">0</span><br>
-      <span style="font-size:10px;color:#4b5563;">Сетка 9×11 · Зубы: лево/право от центра = стенка</span>
+      Pegs: <span class="stat" id="peg-cnt">0</span> &nbsp;&nbsp;
+      Teeth: <span class="stat" id="tooth-cnt">0</span><br>
+      <span style="font-size:10px;color:#4b5563;">Grid 9×11 · Teeth: left/right of center = wall</span>
     </div>
 
     <div id="physics-panel">
-      <h3>⚙ Физика мяча</h3>
+      <h3>⚙ Ball physics</h3>
       <div class="phy-row">
-        <label>Размер мяча</label>
+        <label>Ball size</label>
         <span class="phy-val" id="val-chipSize">0.21</span>
         <input type="range" id="sl-chipSize" min="0.05" max="0.50" step="0.01" value="0.21">
       </div>
       <div class="phy-row">
-        <label>Пег — случайность</label>
+        <label>Peg randomness</label>
         <span class="phy-val" id="val-pegH">1.5</span>
         <input type="range" id="sl-pegH" min="0.0" max="6.0" step="0.1" value="1.5">
       </div>
       <div class="phy-row">
-        <label>Пег — упругость</label>
+        <label>Peg bounce</label>
         <span class="phy-val" id="val-pegV">0.65</span>
         <input type="range" id="sl-pegV" min="0.0" max="1.2" step="0.05" value="0.65">
       </div>
     </div>
 
     <div id="export-wrap">
-      <div id="export-hint">Экспорт → вставь в plinko.html:</div>
-      <textarea id="export-out" readonly placeholder="// нажмите Экспорт..."></textarea>
-      <button id="copy-btn">📋 Скопировать код</button>
+      <div id="export-hint">Export → paste into plinko.html:</div>
+      <textarea id="export-out" readonly placeholder="// click Export..."></textarea>
+      <button id="copy-btn">📋 Copy code</button>
     </div>
   </div>
 </div>
@@ -327,10 +327,10 @@ try { channel = new BroadcastChannel('plinko_channel'); } catch {}
 const statusEl = document.getElementById('status');
 let statusTimer;
 function showStatus(ok) {
-  statusEl.textContent = ok ? '✓ Отправлено в игру' : '💾 Сохранено локально';
+  statusEl.textContent = ok ? '✓ Sent to the game' : '💾 Saved locally';
   statusEl.classList.toggle('sent', ok);
   clearTimeout(statusTimer);
-  statusTimer = setTimeout(()=>{ statusEl.textContent='ожидание…'; statusEl.classList.remove('sent'); }, 2500);
+  statusTimer = setTimeout(()=>{ statusEl.textContent='idle…'; statusEl.classList.remove('sent'); }, 2500);
 }
 
 function buildPayload() {
@@ -372,8 +372,8 @@ function toothAt(x, y) {
 const PEG_HIT_R = () => Math.max(7, W*0.018);
 
 const EL_META = {
-  back: { img: ()=>imgBack, color:'#6496ff', label:'Фон поля' },
-  side: { img: ()=>imgSide, color:'#64d48a', label:'Бок. рамка (зеркалится)' },
+  back: { img: ()=>imgBack, color:'#6496ff', label:'Board background' },
+  side: { img: ()=>imgSide, color:'#64d48a', label:'Side frame (mirrored)' },
 };
 
 function drawToothShape(yf, side, alpha) {
@@ -530,7 +530,7 @@ function redraw() {
       ctx.save();
       ctx.fillStyle = '#34d399';
       ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText(`Стакан ${i+1}`, r.x + r.w/2, r.y + 13);
+      ctx.fillText(`Cup ${i+1}`, r.x + r.w/2, r.y + 13);
       // size readout
       ctx.font = '10px monospace'; ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.textAlign = 'left';
       ctx.fillText(`${(r.w/W*100).toFixed(0)}×${(r.h/BH*100).toFixed(0)}%`, r.x+3, r.y+r.h-4);
@@ -667,10 +667,10 @@ cv.addEventListener('touchend',   onUp,   {passive:false});
 
 // ─── mode buttons ─────────────────────────────────────────────────────────────
 const MODE_INFO = {
-  pegs:   { name:'Пеги',      hint:'ЛКМ — добавить · ПКМ / клик — удалить',                  cls:'hint-peg'    },
-  teeth:  { name:'Зубы',      hint:'ЛКМ — добавить · клик — удалить · лево/право = стенка',  cls:'hint-tooth'  },
-  layout: { name:'Раскладка', hint:'Перетащи блок · угловые ручки — изменить размер',         cls:'hint-layout' },
-  cups:   { name:'Стаканы',   hint:'Перетащи стакан · ручка SE — изменить ширину',            cls:'hint-cups'   },
+  pegs:   { name:'Pegs',      hint:'LMB: add · RMB / click: remove',                         cls:'hint-peg'    },
+  teeth:  { name:'Teeth',     hint:'LMB: add · click: remove · left/right = wall',           cls:'hint-tooth'  },
+  layout: { name:'Layout',    hint:'Drag a block · corner handles resize it',                 cls:'hint-layout' },
+  cups:   { name:'Cups',      hint:'Drag a cup · SE handle changes width',                    cls:'hint-cups'   },
 };
 document.querySelectorAll('.mode-btn').forEach(btn => {
   btn.addEventListener('click', ()=>{
@@ -687,26 +687,26 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
 
 // ─── toolbar buttons ──────────────────────────────────────────────────────────
 document.getElementById('clr-pegs').addEventListener('click',()=>{
-  if(!confirm('Удалить все пеги?')) return; S.pegs=[]; save(); redraw();
+  if(!confirm('Delete all pegs?')) return; S.pegs=[]; save(); redraw();
 });
 document.getElementById('clr-teeth').addEventListener('click',()=>{
-  if(!confirm('Удалить все зубы?')) return; S.teeth=[]; save(); redraw();
+  if(!confirm('Delete all teeth?')) return; S.teeth=[]; save(); redraw();
 });
 document.getElementById('reset-layout').addEventListener('click',()=>{
-  if(!confirm('Сбросить раскладку к дефолту?')) return;
+  if(!confirm('Reset layout to default?')) return;
   S.layout=DEFAULT_LAYOUT(); save(); redraw();
 });
 document.getElementById('reset-cups').addEventListener('click',()=>{
-  if(!confirm('Сбросить стаканы к дефолту?')) return;
+  if(!confirm('Reset cups to default?')) return;
   S.cups=DEFAULT_CUPS(); save(); redraw();
 });
 document.getElementById('snap-cb').addEventListener('change', e=>{ S.snap=e.target.checked; });
 document.getElementById('load-btn').addEventListener('click',()=>{
   load(); setupCanvas(); redraw();
-  statusEl.textContent=`Загружено: ${S.pegs.length} пег, ${S.teeth.length} зубов`;
+  statusEl.textContent=`Loaded: ${S.pegs.length} pegs, ${S.teeth.length} teeth`;
   statusEl.classList.add('sent');
   clearTimeout(statusTimer);
-  statusTimer=setTimeout(()=>{statusEl.textContent='ожидание…';statusEl.classList.remove('sent');},3000);
+  statusTimer=setTimeout(()=>{statusEl.textContent='idle…';statusEl.classList.remove('sent');},3000);
 });
 
 // ─── export ───────────────────────────────────────────────────────────────────
@@ -714,13 +714,13 @@ document.getElementById('export-btn').addEventListener('click',()=>{
   const pl=S.pegs.map(p=>`  {xf:${p.xf.toFixed(4)},yf:${p.yf.toFixed(4)}}`).join(',\n');
   const tl=S.teeth.map(t=>`  {yf:${t.yf.toFixed(4)},side:'${t.side}'}`).join(',\n');
   document.getElementById('export-out').value=
-`const CUSTOM_PEGS=[\n${pl||'  // пусто'}\n];\n\nconst CUSTOM_TEETH=[\n${tl||'  // пусто'}\n];`;
+`const CUSTOM_PEGS=[\n${pl||'  // empty'}\n];\n\nconst CUSTOM_TEETH=[\n${tl||'  // empty'}\n];`;
 });
 document.getElementById('copy-btn').addEventListener('click',()=>{
   document.getElementById('export-out').select(); document.execCommand('copy');
   const btn=document.getElementById('copy-btn');
-  btn.textContent='✅ Скопировано!';
-  setTimeout(()=>btn.textContent='📋 Скопировать код',2000);
+  btn.textContent='✅ Copied!';
+  setTimeout(()=>btn.textContent='📋 Copy code',2000);
 });
 
 // ─── physics sliders ──────────────────────────────────────────────────────────
